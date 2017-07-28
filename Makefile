@@ -1,0 +1,42 @@
+# Makefile
+# $Id$
+#MIDASSYS=/home/olchansk/daq/midas/midas
+
+OSFLAGS  =  -DOS_LINUX -Dextname
+CFLAGS   =  -g -O2 -Wall -Wuninitialized -I$(INC_DIR) -I$(DRV_DIR) -I$(VMICHOME)/include
+CXXFLAGS = $(CFLAGS) -DHAVE_ROOT -DUSE_ROOT -I$(ROOTSYS)/include
+
+LIBS = -lm -lz -lutil -lnsl -lpthread -lrt
+
+DRV_DIR         = $(MIDASSYS)/drivers
+INC_DIR         = $(MIDASSYS)/include
+LIB_DIR         = $(MIDASSYS)/linux/lib
+
+# MIDAS library
+MIDASLIBS = $(LIB_DIR)/libmidas.a
+
+# ROOT library
+ROOTLIBS = $(shell $(ROOTSYS)/bin/root-config --libs) -lThread -Wl,-rpath,$(ROOTSYS)/lib
+
+all: sequence_control.exe 
+
+gefvme.o: $(MIDASSYS)/drivers/vme/vmic/gefvme.c
+	gcc -c -o $@ -O2 -g -Wall -Wuninitialized $< -I$(MIDASSYS)/include
+
+%.o: $(MIDASSYS)/drivers/vme/%.c
+	gcc -c -o $@ -O2 -g -Wall -Wuninitialized $< -I$(MIDASSYS)/include
+
+sequence_control.exe: $(MIDASLIBS) $(LIB_DIR)/mfe.o sequence_control.o gefvme.o 
+	$(CXX) -o $@ $(CFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(LIBS) #-lvme
+
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
+
+%.o: %.cxx
+	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<
+
+clean::
+	-rm -f *.o *.exe
+
+# end
