@@ -1,11 +1,10 @@
 
 /********************************************************************\
 
-  Name:         fevme.cxx
-  Created by:   K.Olchanski
+UCN Sequence Control frontend
 
-  Contents:     Frontend for the generic VME DAQ using CAEN ADC, TDC, TRIUMF VMEIO and VF48
-$Id$
+Sequencing done using TRIUMF Programmable Pulse Generator (PPG) VME module
+
 \********************************************************************/
 
 #include <stdio.h>
@@ -124,15 +123,7 @@ extern "C" {
 \********************************************************************/
 
 MVME_INTERFACE *myvme = 0;
-DWORD PPG_BASE = 0xc00000;
-
-/*-- Frontend Init -------------------------------------------------*/
-//int ppg_add=( 0x0,  0x1,  0x2,  0x3,  0x4,  0x5,  0x6,  0x7,	\
-//0x8,  0x9,  0xa  0xb  0xc  0xd  0xe  0xf				\
-//              0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17			\
-//0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e 0x1f				\
-//                0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 )
-
+DWORD PPG_BASE = 0x00c00000;
 
 HNDLE settings_handle_global_;              //!< Handle for the global settings record
 
@@ -140,17 +131,22 @@ extern HNDLE hDB;
 HNDLE h;
 
 
-int gFactor = 1;
+// Is sequencing enabled
 bool gEnabled = true;
+// This is how long (in sec) we delay opening the UCN valve.
+double gDelayTime;
+// This is how long (in sec) we leave gate valve open.
+double gValveOpenTime;
 
 struct SEQUENCE_SETTINGS {
-  BOOL enable;
-  INT speed;
+  double delayTime;
+  double valveOPenTime;
+  bool enable;
 } static config_global;
 
 
+// Get the current settings from the ODB
 void setVariables(){
-
 
   int status=0;
   INT size = sizeof(SEQUENCE_SETTINGS);
@@ -162,10 +158,19 @@ void setVariables(){
   }
 
   gEnabled = config_global.enable;
-  if(config_global.speed >= 1 && config_global.speed <= 11){
-    gFactor = config_global.speed;
+  if(config_global.delayTime >= 0.0 && config_global.delayTime <= 100.0){
+    gDelayTime = config_global.delayTime;
   }else{
-    cm_msg(MINFO,"PPG","Invalid value for speed = %i (must be between 1-8)", config_global.speed );
+    cm_msg(MINFO,"PPG","Invalid value for delayTime = %f (must be between 0-100sec)", config_global.delayTime);
+    cm_msg(MINFO,"PPG","Setting delayTime to 1sec");
+    gDelayTime = 1;
+  }
+  if(config_global.valveOPenTime >= 5.0 && config_global.valveOPenTime <= 100.0){
+    gValveOpenTime = config_global.valveOPenTime;
+  }else{
+    cm_msg(MINFO,"PPG","Invalid value for valveOpenTime = %f (must be between 5-100sec)", config_global.valveOPenTime);
+    cm_msg(MINFO,"PPG","Setting valveOpenTime to 5sec");
+    gValveOpenTime = 5.0;  
   }
   
 }
@@ -173,47 +178,67 @@ void setVariables(){
 
 
 
+// Here's the plan for how to map the PPG outputs
+// ch 0 -> UCN gate valve control
+// ch 1 -> end irradiation signal
+// ch 2 -> start of valve open signal
+// ch 3 -> valve close signal
+// ch 4 -> in delay period signal
+// ch 3 -> in valve open period
 
-int ppg_inst[]={							  \
-  0x00,  0xffffffff,  0x4,    0x100000,   0x0,   0x0,   0x0,  0x200fff,	\
-  0x10101010,   0x08080808,   0x1000000,  0x100000,  0x20202020,   0x10101010,   0x1000000,  0x100000, \
-  0x40404040,   0x20202020,   0x1000000,  0x100000,  0x80808080,   0x40404040,   0x1000000,  0x100000, \
-  0x01010101,   0x80808080,   0x1000000,  0x100000,  0x02020202,   0x01010101,   0x1000000,  0x100000, \
-  0x04040404,   0x02020202,   0x1000000,  0x100000,  0x08080808,   0x04040404,   0x1000000,  0x100000, \
-  0x0,   0x0,   0x0, 0x300000,   0x0,   0x0,   0x0,  0x000000 };
-  
+// Helper method to write the relevant commands.
+void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3, unsigned int reg4){
+
+    mvme_write_value(myvme, PPG_BASE+8 , i);
+    
+    // Write the 128 bits of instruction to 4 registers
+    mvme_write_value(myvme, PPG_BASE+0x0c , reg1);
+    mvme_write_value(myvme, PPG_BASE+0x10 , reg2);
+    mvme_write_value(myvme, PPG_BASE+0x14 , reg3);   
+    mvme_write_value(myvme, PPG_BASE+0x18 , reg4);   
+
+}
 
 INT set_ppg_sequence(){
 
+  // Reset the PPG
   mvme_write_value(myvme, PPG_BASE , 0x8);
-  mvme_write_value(myvme, PPG_BASE , 0x0);
+  // Use the external trigger to inititate the sequence
+  mvme_write_value(myvme, PPG_BASE , 0x4);
   if(!gEnabled) return 0;
 
-  int inst_index = 0;
-  for(int i = 0; i < 12; i++){
-    
-    // Set the instruction address
-    mvme_write_value(myvme, PPG_BASE+8 , i);
-    
+  printf("Setting up new sequence: delayTime=%f, UCN valve open time=%f \n",gDelayTime,gValveOpenTime);
 
-    // Write the 128 bits of instruction to 4 registers
-    mvme_write_value(myvme, PPG_BASE+0x0c , ppg_inst[inst_index]); inst_index++;
-    mvme_write_value(myvme, PPG_BASE+0x10 , ppg_inst[inst_index]); inst_index++;
+  // ----------------------------------------
+  // Start writing the instruction set
+  // All commands consist of 128-bits, spread across 4 32-bit words
+  
+  // First command; send pulse indicating start.
+  //  int first_command[] = {0x2,0xffffffdf,0x1,0x100000};
+  set_command(0,0x2,0xffffffdf,0x1,0x100000);
 
-    if(i >= 2 && i <= 9){
-      int delay = 0x400000 * gFactor;
-      mvme_write_value(myvme, PPG_BASE+0x14 , delay); inst_index++;    
-    }else{
-      mvme_write_value(myvme, PPG_BASE+0x14 , ppg_inst[inst_index]); inst_index++;
-    }
-    mvme_write_value(myvme, PPG_BASE+0x18 , ppg_inst[inst_index]); inst_index++;
-    
-  }
+  // Delay for gDelayTime; split this into a loop over 10 of gDelayTime/10.0 seconds each.
+  // This is to get around 32-bit limitation in max limit per command.
+  unsigned int delay = (unsigned int)(gDelayTime*1e8/10.0);   // 10e8 cycles per second, loop of 10 commands.
+  set_command(1,0x0, 0x0, 0x0, 0x20000a);
+  set_command(2,0x10, 0xffffffef,delay,0x100000);
+  set_command(3,0x0, 0x0, 0x0, 0x300000);
+  
+
+  // Open valve and wait for specified time; again, set it to 
+  // On first clock, send pulse to V1720...
+  unsigned int opentime = (unsigned int)(gValveOpenTime*1e8/10.0); 
+  set_command(4,0x25,0xffffffda,0x1,0x100000);
+  set_command(5,0x0, 0x0, 0x0, 0x20000a);
+  set_command(6,0x21, 0xffffffde,opentime,0x100000);
+  set_command(7,0x0, 0x0, 0x0, 0x300000);
+
+  // end of valve open time; close valve, send signal; then turn off all outputs.
+  set_command(8,0x8,0xfffffff7,0x1,0x100000);
+  set_command(9,0x0,0xffffffff,0x1,0x100000);
+  set_command(10,0x0,0xffffffff,0x1,0x0);
 
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
-  mvme_write_value(myvme, PPG_BASE , 0x1);
-
-
   return 0;
 
 }
@@ -240,14 +265,12 @@ INT frontend_init()
   
   // Set am to A32 non-privileged Data
   mvme_set_am(myvme, MVME_AM_A32_ND);
+  //mvme_set_am(myvme, MVME_AM_A24);
   
   // Set dmode to D32
   mvme_set_dmode(myvme, MVME_DMODE_D32);
 
   // Setup hotlink
-
-
-
   status = db_find_key (hDB, 0, "/Equipment/UCNSequencer/Settings", &settings_handle_global_);
   if (status != DB_SUCCESS) cm_msg(MINFO,"SetBoardRecord","Key not found. Return code: %d",  status);
   
@@ -260,11 +283,21 @@ INT frontend_init()
     return status;
   }
 
+  // Write to test registers
+  if(0){
+    printf("Writing to 0x%x\n",PPG_BASE);
+    int test0 = mvme_read_value(myvme, PPG_BASE);
+    mvme_write_value(myvme, PPG_BASE+4 , 0xdeadbeef);
+    int test1 = mvme_read_value(myvme, PPG_BASE+4);
+    int test2 = mvme_read_value(myvme, PPG_BASE+0x20);
+    int test3 = mvme_read_value(myvme, PPG_BASE+0x18);
+    int test4 = mvme_read_value(myvme, PPG_BASE+0x2C);
+    printf("Test registers: 0x%x 0x%x 0x%x 0x%x 0x%x \n",test0,test1,test2,test3,test4);
+  }
+
+  // Start sequence
   setVariables();
   set_ppg_sequence();
-
-
-
 
   return SUCCESS;
 }
@@ -366,7 +399,6 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 INT read_event(char *pevent, INT off)
 {
-  printf("read event!\n");
 
   /* init bank structure */
   bk_init32(pevent);
