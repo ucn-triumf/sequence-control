@@ -197,7 +197,7 @@ void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3
     mvme_write_value(myvme, PPG_BASE+0x14 , reg3);   
     mvme_write_value(myvme, PPG_BASE+0x18 , reg4);   
 
-}
+}  
 
 INT set_ppg_sequence(){
 
