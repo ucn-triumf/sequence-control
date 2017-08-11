@@ -79,7 +79,7 @@ extern "C" {
       TRUE,                   /* enabled */
       RO_RUNNING,             /* read only when running */
 
-      500,                    /* poll for 500ms */
+      100,                    /* poll for 500ms */
       0,                      /* stop run after this event limit */
       0,                      /* number of sub events */
       0,                      /* don't log history */
@@ -179,12 +179,12 @@ void setVariables(){
 
 
 // Here's the plan for how to map the PPG outputs
-// ch 0 -> UCN gate valve control
-// ch 1 -> end irradiation signal
-// ch 2 -> start of valve open signal
-// ch 3 -> valve close signal
-// ch 4 -> in delay period signal
-// ch 3 -> in valve open period
+// ch 1 -> UCN gate valve control
+// ch 2 -> end irradiation signal
+// ch 3 -> start of valve open signal
+// ch 4 -> valve close signal
+// ch 5 -> in delay period signal
+// ch 6 -> in valve open period
 
 // Helper method to write the relevant commands.
 void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3, unsigned int reg4){
@@ -214,8 +214,7 @@ INT set_ppg_sequence(){
   // All commands consist of 128-bits, spread across 4 32-bit words
   
   // First command; send pulse indicating start.
-  //  int first_command[] = {0x2,0xffffffdf,0x1,0x100000};
-  set_command(0,0x2,0xffffffdf,0x1,0x100000);
+  set_command(0,0x2,0xfffffffd,0x1,0x100000);
 
   // Delay for gDelayTime; split this into a loop over 10 of gDelayTime/10.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command.
@@ -400,9 +399,28 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 INT read_event(char *pevent, INT off)
 {
 
+ 
+
   /* init bank structure */
   bk_init32(pevent);
 
+  uint32_t *pdata32;
+
+  /* create structured ADC0 bank of double words (i.e. 4-byte words)  */
+  bk_create(pevent, "SEQN", TID_DWORD, (void **)&pdata32);
+
+  // Get sub-second time;
+  struct timeval now;
+  gettimeofday(&now,NULL);
+  *pdata32++ = now.tv_usec/1000;
+  
+  
+  // Get whether we are in sequence
+  int reg0 = mvme_read_value(myvme, PPG_BASE);
+  if(reg0 & 1)*pdata32++ = 1;
+  else *pdata32++ = 0;
+
+  int size2 = bk_close(pevent, pdata32);    
 
   return bk_size(pevent);
 }
