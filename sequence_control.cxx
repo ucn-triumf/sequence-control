@@ -394,7 +394,12 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 }
 
 /*-- Event readout -------------------------------------------------*/
-
+// Bank format
+// word 0 -> millisecond portion of current time
+// word 1 -> Are we in sequence?
+// word 2 -> is sequencer enabled?
+// word 3 -> delaytime (in ms)
+// word 4 -> opentime (in ms)
 
 INT read_event(char *pevent, INT off)
 {
@@ -419,6 +424,11 @@ INT read_event(char *pevent, INT off)
   int reg0 = mvme_read_value(myvme, PPG_BASE);
   if(reg0 & 1)*pdata32++ = 1;
   else *pdata32++ = 0;
+
+  // save the enable, delayTime, opentim
+  *pdata32++ = (int)gEnabled;
+  *pdata32++ = (int)(gDelayTime*1000.0);
+  *pdata32++ = (int)(gValveOpenTime*1000.0);
 
   int size2 = bk_close(pevent, pdata32);    
 
