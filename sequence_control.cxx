@@ -396,11 +396,11 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 /*-- Event readout -------------------------------------------------*/
 // Bank format
 // word 0 -> millisecond portion of current time
-// word 1 -> Are we in sequence?
+// word 1 -> bit 0: are we in sequence? bit 1: did sequence just start?
 // word 2 -> is sequencer enabled?
 // word 3 -> delaytime (in ms)
 // word 4 -> opentime (in ms)
-
+int previous_reg0_bit0 = 1;
 INT read_event(char *pevent, INT off)
 {
 
@@ -420,10 +420,19 @@ INT read_event(char *pevent, INT off)
   *pdata32++ = now.tv_usec/1000;
   
   
-  // Get whether we are in sequence
+  // Save sequence status in word1.
   int reg0 = mvme_read_value(myvme, PPG_BASE);
-  if(reg0 & 1)*pdata32++ = 1;
-  else *pdata32++ = 0;
+  int word1 = 0;
+  // Check whether we are in sequence
+  if(reg0 & 1){
+    word1 |= (1<<0);
+    // if last time we were not in sequence, then set bit that transition happened...
+    if(!previous_reg0_bit0)
+      word1 |= (1<<1);
+    
+  }
+  *pdata32++ = word1;
+  previous_reg0_bit0 = (reg0 & 1);
 
   // save the enable, delayTime, opentim
   *pdata32++ = (int)gEnabled;
