@@ -180,12 +180,12 @@ void setVariables(){
 
 // Here's the plan for how to map the PPG outputs
 // ch 1 -> UCN gate valve control
-// ch 2 -> end irradiation signal
-// ch 3 -> start of valve open signal
-// ch 4 -> valve close signal
-// ch 5 -> in delay period signal
-// ch 6 -> in valve open period
-
+// ch 3/4 -> end irradiation signal
+// ch 5/6 -> start of valve open signal
+// ch 7/8 -> valve close signal
+// ch 9/10 -> spare
+// ch 11 -> in delay period signal
+// ch 12 -> in valve open period
 // Helper method to write the relevant commands.
 void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3, unsigned int reg4){
 
@@ -214,28 +214,28 @@ INT set_ppg_sequence(){
   // All commands consist of 128-bits, spread across 4 32-bit words
   
   // First command; send pulse indicating start.
-  set_command(0,0x2,0xfffffffd,0x1,0x100000);
+  set_command(0,0xc,0xfffffff3,0x1,0x100000);
 
   // Delay for gDelayTime; split this into a loop over 10 of gDelayTime/10.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command.
   unsigned int delay = (unsigned int)(gDelayTime*1e8/10.0);   // 10e8 cycles per second, loop of 10 commands.
-  set_command(1,0x0, 0x0, 0x0, 0x20000a);
-  set_command(2,0x10, 0xffffffef,delay,0x100000);
-  set_command(3,0x0, 0x0, 0x0, 0x300000);
+  set_command(1,0x0,   0x0, 0x0, 0x20000a);
+  set_command(2,0x400, 0xfffffbff,delay,0x100000);
+  set_command(3,0x0,   0x0, 0x0, 0x300000);
   
 
   // Open valve and wait for specified time; again, set it to 
   // On first clock, send pulse to V1720...
   unsigned int opentime = (unsigned int)(gValveOpenTime*1e8/10.0); 
-  set_command(4,0x25,0xffffffda,0x1,0x100000);
-  set_command(5,0x0, 0x0, 0x0, 0x20000a);
-  set_command(6,0x21, 0xffffffde,opentime,0x100000);
-  set_command(7,0x0, 0x0, 0x0, 0x300000);
+  set_command(4,0x831, 0xfffff7ce,0x1,0x100000);
+  set_command(5,0x0,   0x0, 0x0, 0x20000a);
+  set_command(6,0x801, 0xfffff7fe,opentime,0x100000);
+  set_command(7,0x0,   0x0, 0x0, 0x300000);
 
   // end of valve open time; close valve, send signal; then turn off all outputs.
-  set_command(8,0x8,0xfffffff7,0x1,0x100000);
-  set_command(9,0x0,0xffffffff,0x1,0x100000);
-  set_command(10,0x0,0xffffffff,0x1,0x0);
+  set_command(8,0xc0, 0xffffff3f,0x1,0x100000);
+  set_command(9,0x0,  0xffffffff,0x1,0x100000);
+  set_command(10,0x0, 0xffffffff,0x1,0x0);
 
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
   return 0;
@@ -283,7 +283,7 @@ INT frontend_init()
   }
 
   // Write to test registers
-  if(0){
+  if(1){
     printf("Writing to 0x%x\n",PPG_BASE);
     int test0 = mvme_read_value(myvme, PPG_BASE);
     mvme_write_value(myvme, PPG_BASE+4 , 0xdeadbeef);
@@ -294,7 +294,7 @@ INT frontend_init()
     printf("Test registers: 0x%x 0x%x 0x%x 0x%x 0x%x \n",test0,test1,test2,test3,test4);
   }
 
-  // Start sequence
+  // Start sequence 
   setVariables();
   set_ppg_sequence();
 
@@ -422,6 +422,7 @@ INT read_event(char *pevent, INT off)
   
   // Save sequence status in word1.
   int reg0 = mvme_read_value(myvme, PPG_BASE);
+  //printf("reg0 %i\n",reg0);
   int word1 = 0;
   // Check whether we are in sequence
   if(reg0 & 1){
