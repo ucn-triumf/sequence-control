@@ -158,17 +158,17 @@ void setVariables(){
   }
 
   gEnabled = config_global.enable;
-  if(config_global.delayTime >= 0.0 && config_global.delayTime <= 100.0){
+  if(config_global.delayTime >= 0.0 && config_global.delayTime <= 1000.0){
     gDelayTime = config_global.delayTime;
   }else{
-    cm_msg(MINFO,"PPG","Invalid value for delayTime = %f (must be between 0-100sec)", config_global.delayTime);
+    cm_msg(MINFO,"PPG","Invalid value for delayTime = %f (must be between 0-1000sec)", config_global.delayTime);
     cm_msg(MINFO,"PPG","Setting delayTime to 1sec");
     gDelayTime = 1;
   }
-  if(config_global.valveOPenTime >= 5.0 && config_global.valveOPenTime <= 100.0){
+  if(config_global.valveOPenTime >= 5.0 && config_global.valveOPenTime <= 1000.0){
     gValveOpenTime = config_global.valveOPenTime;
   }else{
-    cm_msg(MINFO,"PPG","Invalid value for valveOpenTime = %f (must be between 5-100sec)", config_global.valveOPenTime);
+    cm_msg(MINFO,"PPG","Invalid value for valveOpenTime = %f (must be between 5-1000sec)", config_global.valveOPenTime);
     cm_msg(MINFO,"PPG","Setting valveOpenTime to 5sec");
     gValveOpenTime = 5.0;  
   }
@@ -221,19 +221,19 @@ INT set_ppg_sequence(){
   // First command; send pulse indicating start.
   set_command(0,0xc,0xfffffff3,0x1,0x100000);
 
-  // Delay for gDelayTime; split this into a loop over 10 of gDelayTime/10.0 seconds each.
+  // Delay for gDelayTime; split this into a loop over 100 of gDelayTime/100.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command.
-  unsigned int delay = (unsigned int)(gDelayTime*1e8/10.0);   // 10e8 cycles per second, loop of 10 commands.
-  set_command(1,0x0,   0x0, 0x0, 0x20000a);
+  unsigned int delay = (unsigned int)(gDelayTime*1e8/100.0);   // 10e8 cycles per second, loop of 100 (0x64) commands.
+  set_command(1,0x0,   0x0, 0x0, 0x200064);
   set_command(2,0x400, 0xfffffbff,delay,0x100000);
   set_command(3,0x0,   0x0, 0x0, 0x300000);
   
 
   // Open valve and wait for specified time; again, set it to 
   // On first clock, send pulse to V1720...
-  unsigned int opentime = (unsigned int)(gValveOpenTime*1e8/10.0); 
+  unsigned int opentime = (unsigned int)(gValveOpenTime*1e8/100.0); 
   set_command(4,0x831, 0xfffff7ce,0x1,0x100000);
-  set_command(5,0x0,   0x0, 0x0, 0x20000a);
+  set_command(5,0x0,   0x0, 0x0, 0x200064);
   set_command(6,0x801, 0xfffff7fe,opentime,0x100000);
   set_command(7,0x0,   0x0, 0x0, 0x300000);
 
