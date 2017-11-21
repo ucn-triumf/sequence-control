@@ -203,15 +203,21 @@ INT set_ppg_sequence(){
 
   // Reset the PPG
   mvme_write_value(myvme, PPG_BASE , 0x8);
+  printf("Resetting parameters\n");
   if(!gEnabled){
     mvme_write_value(myvme, PPG_BASE , 0x0);
     set_command(0,0,0,0,0);
+    printf("Disabled, nothing to do\n");
     return 0;
   }
 
+  // Set the first command to 0 (halt program)... this ensure that if the sequence gets immediately 
+  // triggered when we set to external trigger, then there will be a blank sequence to execute.
+  // If we don't do this, then we will restart the old sequence whenever we change parameters.
+  set_command(0,0,0,0,0);  
+  
   // Use the external trigger to inititate the sequence
   mvme_write_value(myvme, PPG_BASE , 0x4);
-
   printf("Setting up new sequence: delayTime=%f, UCN valve open time=%f \n",gDelayTime,gValveOpenTime);
 
   // ----------------------------------------
