@@ -133,6 +133,14 @@ HNDLE h;
 
 // Is sequencing enabled
 bool gEnabled = true;
+
+// Do we use automatic cycling, instead of using values from ODB?
+bool gAutoCycling = false;
+// autocycle paramets
+int gAutoCycleIndex = 0; // cycle index
+const int gMaxAutoCycleIndex = 9; // 
+int gAutoCycleDelays[gMaxAutoCycleIndex] = {0, 120, 10, 80, 30, 50, 20, 5, 170};
+
 // This is how long (in sec) we delay opening the UCN valve.
 double gDelayTime;
 // This is how long (in sec) we leave gate valve open.
@@ -142,6 +150,7 @@ struct SEQUENCE_SETTINGS {
   double delayTime;
   double valveOPenTime;
   bool enable;
+  bool autocycling;
 } static config_global;
 
 
@@ -158,13 +167,18 @@ void setVariables(){
   }
 
   gEnabled = config_global.enable;
-  if(config_global.delayTime >= 0.0 && config_global.delayTime <= 1000.0){
-    gDelayTime = config_global.delayTime;
-  }else{
-    cm_msg(MINFO,"PPG","Invalid value for delayTime = %f (must be between 0-1000sec)", config_global.delayTime);
-    cm_msg(MINFO,"PPG","Setting delayTime to 1sec");
-    gDelayTime = 1;
+  gAutoCycling =  config_global.autocycling;
+  // If not using autocycling, then set the delay
+  if(!gAutoCycling){
+    if(config_global.delayTime >= 0.0 && config_global.delayTime <= 1000.0){
+      gDelayTime = config_global.delayTime;
+    }else{
+      cm_msg(MINFO,"PPG","Invalid value for delayTime = %f (must be between 0-1000sec)", config_global.delayTime);
+      cm_msg(MINFO,"PPG","Setting delayTime to 1sec");
+      gDelayTime = 1;
+    }
   }
+
   if(config_global.valveOPenTime >= 5.0 && config_global.valveOPenTime <= 1000.0){
     gValveOpenTime = config_global.valveOPenTime;
   }else{
@@ -218,7 +232,14 @@ INT set_ppg_sequence(){
   
   // Use the external trigger to inititate the sequence
   mvme_write_value(myvme, PPG_BASE , 0x4);
-  printf("Setting up new sequence: delayTime=%f, UCN valve open time=%f \n",gDelayTime,gValveOpenTime);
+
+  if(gAutoCycling){ // reset delay value
+    gDelayTime = gAutoCycleDelays[gAutoCycleIndex];
+  }
+
+  //  printf("Setting up new sequence: delayTime=%f, UCN valve open time=%f \n",gDelayTime,gValveOpenTime);
+  cm_msg(MINFO,"Settings","Setting up new sequence: delayTime=%f, UCN valve open time=%f", gDelayTime,gValveOpenTime);                                           
+
 
   // ----------------------------------------
   // Start writing the instruction set
@@ -305,20 +326,18 @@ INT frontend_init()
     printf("Test registers: 0x%x 0x%x 0x%x 0x%x 0x%x \n",test0,test1,test2,test3,test4);
   }
 
-  // Start sequence 
+  // Grab values from PDB and update sequence 
   setVariables();
   set_ppg_sequence();
 
   return SUCCESS;
 }
 
-static int gHaveRun = 0;
-
 /*-- Frontend Exit -------------------------------------------------*/
 
 INT frontend_exit()
 {
-  mvme_write_value(myvme, PPG_BASE , 0x8);
+  mvme_write_value(myvme, PPG_BASE , 0x8);gAutoCycleIndex = 0;
   mvme_write_value(myvme, PPG_BASE , 0x0);
 
   return SUCCESS;
@@ -328,6 +347,11 @@ INT frontend_exit()
 
 INT begin_of_run(INT run_number, char *error)
 {
+                                                                         
+  if(gAutoCycling){
+    cm_msg(MINFO,"BOR","Using the auto-sequencing.");             
+    gAutoCycleIndex = 0;
+  }
 
   return SUCCESS;
 }
@@ -435,12 +459,15 @@ INT read_event(char *pevent, INT off)
   int reg0 = mvme_read_value(myvme, PPG_BASE);
   //printf("reg0 %i\n",reg0);
   int word1 = 0;
+  int transition_happened = 0;
   // Check whether we are in sequence
   if(reg0 & 1){
     word1 |= (1<<0);
     // if last time we were not in sequence, then set bit that transition happened...
-    if(!previous_reg0_bit0)
+    if(!previous_reg0_bit0){
+      transition_happened = 1;
       word1 |= (1<<1);
+    }
     
   }
   *pdata32++ = word1;
@@ -452,6 +479,20 @@ INT read_event(char *pevent, INT off)
   *pdata32++ = (int)(gValveOpenTime*1000.0);
 
   int size2 = bk_close(pevent, pdata32);    
+
+  // If a sequence finished, then update the index if auto-cycling.
+  if(transition_happened){
+    if(gAutoCycling){
+      cm_msg(MINFO,"SetBoardRecord","Sequence Finished (cycle=%i)",gAutoCycleIndex);   
+      gAutoCycleIndex++; 
+      if(gAutoCycleIndex >= gMaxAutoCycleIndex){
+	gAutoCycleIndex = 0;
+      }      
+      set_ppg_sequence();
+    }else{
+      cm_msg(MINFO,"SetBoardRecord","Sequence Finished");   
+    } 
+  }
 
   return bk_size(pevent);
 }
