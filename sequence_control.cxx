@@ -135,7 +135,7 @@ HNDLE h;
 bool gEnabled = true;
 
 // Do we use automatic cycling, instead of using values from ODB?
-bool gAutoCycling = false;
+bool gAutoCycling = true;
 // autocycle paramets
 int gAutoCycleIndex = 0; // cycle index
 const int gMaxAutoCycleIndex = 9; // 
@@ -167,7 +167,8 @@ void setVariables(){
   }
 
   gEnabled = config_global.enable;
-  gAutoCycling =  config_global.autocycling;
+  //  gAutoCycling =  config_global.autocycling;
+  printf("auto-cycling %i\n",gAutoCycling);
   // If not using autocycling, then set the delay
   if(!gAutoCycling){
     if(config_global.delayTime >= 0.0 && config_global.delayTime <= 1000.0){
@@ -238,7 +239,12 @@ INT set_ppg_sequence(){
   }
 
   //  printf("Setting up new sequence: delayTime=%f, UCN valve open time=%f \n",gDelayTime,gValveOpenTime);
-  cm_msg(MINFO,"Settings","Setting up new sequence: delayTime=%f, UCN valve open time=%f", gDelayTime,gValveOpenTime);                                           
+  if(gAutoCycling){
+    cm_msg(MINFO,"Settings","Setting up new sequence (auto-cycling): delayTime=%f, UCN valve open time=%f", gDelayTime,gValveOpenTime);   
+  }else{
+    cm_msg(MINFO,"Settings","Setting up new sequence: delayTime=%f, UCN valve open time=%f", gDelayTime,gValveOpenTime);     
+  }
+
 
 
   // ----------------------------------------
@@ -436,11 +442,11 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 // word 3 -> delaytime (in ms)
 // word 4 -> opentime (in ms)
 int previous_reg0_bit0 = 1;
+int first_event = 1;
 INT read_event(char *pevent, INT off)
 {
 
- 
-
+  //printf("read event\n");
   /* init bank structure */
   bk_init32(pevent);
 
@@ -459,16 +465,23 @@ INT read_event(char *pevent, INT off)
   int reg0 = mvme_read_value(myvme, PPG_BASE);
   //printf("reg0 %i\n",reg0);
   int word1 = 0;
-  int transition_happened = 0;
+  int sequence_finished = 0;
   // Check whether we are in sequence
   if(reg0 & 1){
     word1 |= (1<<0);
     // if last time we were not in sequence, then set bit that transition happened...
     if(!previous_reg0_bit0){
-      transition_happened = 1;
       word1 |= (1<<1);
     }
     
+  }else{ // if we were in sequence last time and aren't now, then sequence is finished.
+    if(previous_reg0_bit0){
+      if(first_event){
+	first_event = 0;
+      }else{
+	sequence_finished = 1;
+      }
+    }
   }
   *pdata32++ = word1;
   previous_reg0_bit0 = (reg0 & 1);
@@ -481,7 +494,7 @@ INT read_event(char *pevent, INT off)
   int size2 = bk_close(pevent, pdata32);    
 
   // If a sequence finished, then update the index if auto-cycling.
-  if(transition_happened){
+  if(sequence_finished){
     if(gAutoCycling){
       cm_msg(MINFO,"SetBoardRecord","Sequence Finished (cycle=%i)",gAutoCycleIndex);   
       gAutoCycleIndex++; 
