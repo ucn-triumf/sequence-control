@@ -343,7 +343,7 @@ INT frontend_init()
 
 INT frontend_exit()
 {
-  mvme_write_value(myvme, PPG_BASE , 0x8);gAutoCycleIndex = 0;
+  mvme_write_value(myvme, PPG_BASE , 0x8);
   mvme_write_value(myvme, PPG_BASE , 0x0);
 
   return SUCCESS;
@@ -357,6 +357,7 @@ INT begin_of_run(INT run_number, char *error)
   if(gAutoCycling){
     cm_msg(MINFO,"BOR","Using the auto-sequencing.");             
     gAutoCycleIndex = 0;
+    set_ppg_sequence();
   }
 
   return SUCCESS;
