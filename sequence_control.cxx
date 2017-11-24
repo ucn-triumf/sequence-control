@@ -135,7 +135,7 @@ HNDLE h;
 bool gEnabled = true;
 
 // Do we use automatic cycling, instead of using values from ODB?
-bool gAutoCycling = true;
+bool gAutoCycling = false;
 // autocycle paramets
 int gAutoCycleIndex = 0; // cycle index
 const int gMaxAutoCycleIndex = 9; // 
@@ -150,6 +150,7 @@ struct SEQUENCE_SETTINGS {
   double delayTime;
   double valveOPenTime;
   bool enable;
+  double blank;
   bool autocycling;
 } static config_global;
 
@@ -159,6 +160,7 @@ void setVariables(){
 
   int status=0;
   INT size = sizeof(SEQUENCE_SETTINGS);
+  //printf("size %i\n",size);
   //get actual record
   status = db_get_record(hDB, settings_handle_global_, &config_global, &size, 0);
   if (status != DB_SUCCESS){
@@ -166,8 +168,16 @@ void setVariables(){
     return ;
   }
 
+  printf("ODB settings: %i %i %f %f ",config_global.enable,config_global.autocycling, config_global.delayTime,config_global.valveOPenTime );
+  
+  //if(gEnabled){
+  //  cm_msg(MINFO,"PPG","Sequencer enabled");
+  //}else{
+  //  cm_msg(MINFO,"PPG","Sequencer disabled");
+  //}
+
   gEnabled = config_global.enable;
-  //  gAutoCycling =  config_global.autocycling;
+  gAutoCycling =  config_global.autocycling;
   printf("auto-cycling %i\n",gAutoCycling);
   // If not using autocycling, then set the delay
   if(!gAutoCycling){
