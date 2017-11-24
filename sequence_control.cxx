@@ -77,7 +77,8 @@ extern "C" {
       LAM_SOURCE(0, 0xFFFFFF),                      /* event source */
       "MIDAS",                /* format */
       TRUE,                   /* enabled */
-      RO_RUNNING,             /* read only when running */
+      //      RO_RUNNING,             /* read only when running */
+      RO_ALWAYS,             /* read only when running */
 
       100,                    /* poll for 500ms */
       0,                      /* stop run after this event limit */
@@ -505,17 +506,16 @@ INT read_event(char *pevent, INT off)
   int size2 = bk_close(pevent, pdata32);    
 
   // If a sequence finished, then update the index if auto-cycling.
+  //printf("sequence_finished %i %i\n",sequence_finished, (reg0 & 1));
   if(sequence_finished){
     if(gAutoCycling){
-      cm_msg(MINFO,"SetBoardRecord","Sequence Finished (cycle=%i)",gAutoCycleIndex);   
+      cm_msg(MINFO,"SetBoardRecord","Finished sequence (index=%i)",gAutoCycleIndex);   
       gAutoCycleIndex++; 
       if(gAutoCycleIndex >= gMaxAutoCycleIndex){
 	gAutoCycleIndex = 0;
       }      
       set_ppg_sequence();
-    }else{
-      cm_msg(MINFO,"SetBoardRecord","Sequence Finished");   
-    } 
+    }
   }
 
   return bk_size(pevent);
