@@ -247,6 +247,17 @@ INT set_ppg_sequence(){
 
   if(gAutoCycling){ // reset delay value
     gDelayTime = gAutoCycleDelays[gAutoCycleIndex];
+
+    //    db_set_value(hDB,0,"/Equipment/UCNSequencer/Settings/delayTime", &gDelayTime, sizeof(gDelayTime), 1, TID_DOUBLE);
+    HNDLE hDelayKey;
+    int status = db_find_key(hDB, 0, "/Equipment/UCNSequencer/Settings/delayTime", &hDelayKey);    
+    if(status == DB_SUCCESS){
+
+      db_set_data_index2(hDB, hDelayKey, &gDelayTime, sizeof(gDelayTime), 0, TID_DOUBLE, FALSE);
+
+    }
+
+    
   }
 
   //  printf("Setting up new sequence: delayTime=%f, UCN valve open time=%f \n",gDelayTime,gValveOpenTime);
