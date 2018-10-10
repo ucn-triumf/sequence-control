@@ -8,6 +8,18 @@ Sequencing done using TRIUMF Programmable Pulse Generator (PPG) VME module
 This is a new version of this program, written for 2018 run, to be able to 
 control a larger number of valves in a semi-arbitrary sequence...
 
+Some definitions and conventions:
+
+1) One cycle corresponds to a single irradiation and the subsequent measurements
+2) One period is a time within a cycle with valves in a particular state
+3) A period has an associate DurationTime and a state for each valve.
+4) The DurationTime must be greater than 5 seconds.  Alternately, if it is exactly zero
+then that period will be ignored.
+5) One super-cycle corresponds to multiple cycles.
+6) We can either set the number of super-cycles or just set it to accumulate 
+an infinite number of super-cycles
+7) From the PPGs point of view, a PPG sequence corresponds to a single cycle.
+8) The PPG sequence will start when the irradiation starts.
 
 
 \********************************************************************/
@@ -37,7 +49,7 @@ extern "C" {
 /*-- Globals -------------------------------------------------------*/
 
 /* The frontend name (client name) as seen by other MIDAS clients   */
-   char *frontend_name = "fesequencer";
+   char *frontend_name = "fe2018sequencer";
 /* The frontend file name, don't change it */
    char *frontend_file_name = __FILE__;
 
@@ -75,7 +87,7 @@ extern "C" {
 
   EQUIPMENT equipment[] = {
 
-    {"UCNSequencer",               /* equipment name */
+    {"UCNSequencer2018",               /* equipment name */
      {1, TRIGGER_ALL,         /* event ID, trigger mask */
       "SYSTEM",               /* event buffer */
       EQ_PERIODIC,              /* equipment type */
@@ -160,15 +172,54 @@ struct SEQUENCE_SETTINGS {
   bool autocycling;
 } static config_global;
 
+static const int MaxPeriods = 10;
+static const int MaxCycles = 20;
+
+struct SEQUENCE_SETTINGS2 {
+  bool enable;  // enable the sequencing
+  int numberPeriodsInCycle;
+  int numberCyclesInSuper; // number of cycles in super-cycle
+  int numberSuperCycles; // number of super-cycles to do
+  bool infiniteCycles; // Should we just continue super-cycles infinitely?
+  //bool Valve1State[MaxPeriods]; // valve 1 state for each period in a cycle.
+  double DurationTimePeriod1[MaxCycles]; // Time in seconds for period 1 for each cycle.
+  double DurationTimePeriod2[MaxCycles]; // Time in seconds for period 2 for each cycle.
+  double DurationTimePeriod3[MaxCycles];
+  double DurationTimePeriod4[MaxCycles];
+  double DurationTimePeriod5[MaxCycles];
+  double DurationTimePeriod6[MaxCycles];
+  double DurationTimePeriod7[MaxCycles];
+  double DurationTimePeriod8[MaxCycles];
+  double DurationTimePeriod9[MaxCycles];
+  double DurationTimePeriod10[MaxCycles];
+  int Valve1State[MaxPeriods]; // valve 1 state for each period in a cycle.
+  int Valve2State[MaxPeriods];
+  int Valve3State[MaxPeriods];
+  int Valve4State[MaxPeriods];
+  int Valve5State[MaxPeriods];
+  int Valve6State[MaxPeriods];
+  int Valve7State[MaxPeriods];
+  int Valve8State[MaxPeriods];
+  //bool Valve2State[MaxPeriods]; // Valve 2 state for each period in a cycle.
+  //bool Valve3State[MaxPeriods];
+  //bool Valve4State[MaxPeriods];
+  //bool Valve5State[MaxPeriods];
+  //bool Valve6State[MaxPeriods];
+  //bool Valve7State[MaxPeriods];
+  //bool Valve8State[MaxPeriods];
+
+
+} static config_global2;
+
 
 // Get the current settings from the ODB
 void setVariables(){
 
   int status=0;
-  INT size = sizeof(SEQUENCE_SETTINGS);
+  INT size = sizeof(SEQUENCE_SETTINGS2);
   //printf("size %i\n",size);
   //get actual record
-  status = db_get_record(hDB, settings_handle_global_, &config_global, &size, 0);
+  status = db_get_record(hDB, settings_handle_global_, &config_global2, &size, 0);
   if (status != DB_SUCCESS){
     cm_msg(MERROR,"SetBoardRecord","Couldn't get record. Return code: %d", status);
     return ;
@@ -255,7 +306,7 @@ INT set_ppg_sequence(){
 
     //    db_set_value(hDB,0,"/Equipment/UCNSequencer/Settings/delayTime", &gDelayTime, sizeof(gDelayTime), 1, TID_DOUBLE);
     HNDLE hDelayKey;
-    int status = db_find_key(hDB, 0, "/Equipment/UCNSequencer/Settings/delayTime", &hDelayKey);    
+    int status = db_find_key(hDB, 0, "/Equipment/UCNSequencer2018/Settings/delayTime", &hDelayKey);    
     if(status == DB_SUCCESS){
 
       db_set_data_index2(hDB, hDelayKey, &gDelayTime, sizeof(gDelayTime), 0, TID_DOUBLE, FALSE);
@@ -316,6 +367,24 @@ void callback_func(INT h, INT hseq, void *info)
 
 }
 
+struct testtest {
+  bool enable;  // enable the sequencing
+  int numPeriodsInCycle; // number of periods in each cycle
+  int numCyclesInSuper; // number of cycles in super-cycle
+  int numberSuperCycles; // number of super-cycles to do
+  bool infiniteCycles; // Should we just continue super-cycles infinitely?
+};
+
+struct testtest2 {
+  bool enable;  // enable the sequencing
+  bool infiniteCycles; // Should we just continue super-cycles infinitely?
+  bool enable2;  // enable the sequencing
+  bool infiniteCycles2; // Should we just continue super-cycles infinitely?
+  int numPeriodsInCycle; // number of periods in each cycle
+  int numCyclesInSuper; // number of cycles in super-cycle
+  int numberSuperCycles; // number of super-cycles to do
+};
+
 INT frontend_init()
 {
   int status=0;
@@ -335,18 +404,30 @@ INT frontend_init()
   mvme_set_dmode(myvme, MVME_DMODE_D32);
 
   // Setup hotlink
-  status = db_find_key (hDB, 0, "/Equipment/UCNSequencer/Settings", &settings_handle_global_);
+  status = db_find_key (hDB, 0, "/Equipment/UCNSequencer2018/Settings", &settings_handle_global_);
   if (status != DB_SUCCESS) cm_msg(MINFO,"SetBoardRecord","Key not found. Return code: %d",  status);
   
-  INT size = sizeof(SEQUENCE_SETTINGS);
+  INT size = sizeof(SEQUENCE_SETTINGS2);
 
+  printf("size %i %i %i %i \n",sizeof(bool),sizeof(int),sizeof(testtest),sizeof(testtest2));
   //hotlink
-  status = db_open_record(hDB, settings_handle_global_, &config_global, size, MODE_READ, callback_func, NULL);
+  printf("Setup hotlink\n");
+  status = db_open_record(hDB, settings_handle_global_, &config_global2, size, MODE_READ, callback_func, NULL);
+  printf("Finished setting hotlink: %i %i %i %i %i %i %i %i %i\n",
+	 config_global2.enable,
+	 config_global2.infiniteCycles,
+	 config_global2.numberPeriodsInCycle,
+	 config_global2.numberCyclesInSuper,
+	 config_global2.numberSuperCycles,
+	 config_global2.Valve7State[0],
+	 config_global2.Valve7State[1],
+	 config_global2.Valve8State[0],
+	 config_global2.Valve8State[1]);
   if (status != DB_SUCCESS){
     cm_msg(MERROR,"SetBoardRecord","Couldn't create hotlink . Return code: %d\n", status);
     return status;
   }
-
+  printf("Finished setting hotlink\n");
   // Write to test registers
   if(1){
     printf("Writing to 0x%x\n",PPG_BASE);
