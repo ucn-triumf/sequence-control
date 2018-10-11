@@ -183,17 +183,7 @@ struct SEQUENCE_SETTINGS {
   int numberSuperCycles; // number of super-cycles to do
   bool infiniteCycles; // Should we just continue super-cycles infinitely?
   //bool Valve1State[MaxPeriods]; // valve 1 state for each period in a cycle.
-  double DurationTimePeriod[MaxPeriods][MaxCycles];
-  //double DurationTimePeriod1[MaxCycles]; // Time in seconds for period 1 for each cycle.
-  //double DurationTimePeriod2[MaxCycles]; // Time in seconds for period 2 for each cycle.
-  //double DurationTimePeriod3[MaxCycles];
-  //double DurationTimePeriod4[MaxCycles];
-  //double DurationTimePeriod5[MaxCycles];
-  //double DurationTimePeriod6[MaxCycles];
-  //double DurationTimePeriod7[MaxCycles];
-  //double DurationTimePeriod8[MaxCycles];
-  //double DurationTimePeriod9[MaxCycles];
-  //double DurationTimePeriod10[MaxCycles];
+  double DurationTimePeriod[MaxPeriods][MaxCycles]; // Time in seconds for periods for each cycle.
   int Valve1State[MaxPeriods]; // valve 1 state for each period in a cycle.
   int Valve2State[MaxPeriods];
   int Valve3State[MaxPeriods];
@@ -254,8 +244,8 @@ void setVariables(){
     for(int i = 0; i < config_global.numberPeriodsInCycle; i++){
 
       double dtime = config_global.DurationTimePeriod[i][j];
-      if(dtime < 5.0 && fabs(dtime) > 0.001){
-	cm_msg(MERROR,"Settings","The requested DurationTime of %.2f for Period%i[%i] is not valid; must be either > 5.0s or exactly 0.0; disabling sequencer.\n",dtime,i+1,j);
+      if(dtime < 0.0 || dtime > 4000){
+	cm_msg(MERROR,"Settings","The requested DurationTime of %.2f for Period%i[%i] is not valid; must be in the range [0,4000s]; disabling sequencer.\n",dtime,i+1,j);
 	gEnabled = false;
 	return;	
       }
@@ -351,18 +341,34 @@ INT set_ppg_sequence(){
   
   int command_index = 0;
 
+  // Add blank 100ns at the start of sequence...
+  set_command(command_index++,0x0,   0xffffffff, 0x10, 0x100000);
+
   // We do a loop for each period. almost split times into a loop over 100 of DurationTime/100.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command (max of 42s otherwise)
 
   for(int i = 0; i < config_global.numberPeriodsInCycle; i++){
     
-    double dtime = config_global.DurationTimePeriod[i][0];
+    int cycle_index = 0;
+
+    double dtime = config_global.DurationTimePeriod[i][cycle_index];
 
     if(fabs(dtime) < 0.1) continue; // Ignore period of zero duration...
 
+    // figure out which valves are enabled.  For each open valve we set two 
+    // outlets high.
+    int enabled_outputs = 0;
+    if(config_global.Valve1State[i]){enabled_outputs += ((0x3) << 0);}
+    if(config_global.Valve2State[i]){enabled_outputs += ((0x3) << 2);}
+    if(config_global.Valve3State[i]){enabled_outputs += ((0x3) << 4);}
+    if(config_global.Valve4State[i]){enabled_outputs += ((0x3) << 6);}
+    if(config_global.Valve5State[i]){enabled_outputs += ((0x3) << 8);}
+    if(config_global.Valve6State[i]){enabled_outputs += ((0x3) << 10);}
+    if(config_global.Valve7State[i]){enabled_outputs += ((0x3) << 12);}
+    if(config_global.Valve8State[i]){enabled_outputs += ((0x3) << 14);}
     unsigned int ppg_time = (unsigned int)(dtime*1e8/100.0);
     set_command(command_index++,0x0,   0x0, 0x0, 0x200064);
-    set_command(command_index++,0x400, 0xfffffbff,ppg_time,0x100000);
+    set_command(command_index++,enabled_outputs, ~enabled_outputs,ppg_time,0x100000);
     set_command(command_index++,0x0,   0x0, 0x0, 0x300000);
 
   }
@@ -573,6 +579,7 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 // word 4 -> opentime (in ms)
 int previous_reg0_bit0 = 1;
 int first_event = 1;
+struct timeval cycle_start_time;
 INT read_event(char *pevent, INT off)
 {
 
@@ -602,6 +609,8 @@ INT read_event(char *pevent, INT off)
     // if last time we were not in sequence, then set bit that transition happened...
     if(!previous_reg0_bit0){
       word1 |= (1<<1);
+      printf("Started cycle \n");
+      cycle_start_time = now;
     }
     
   }else{ // if we were in sequence last time and aren't now, then sequence is finished.
@@ -610,6 +619,9 @@ INT read_event(char *pevent, INT off)
 	first_event = 0;
       }else{
 	sequence_finished = 1;
+	double diff = now.tv_sec-cycle_start_time.tv_sec + ((float)(now.tv_usec-cycle_start_time.tv_usec))/1000000.0;
+	printf("Finished cycle; cycle time was %.3f sec \n",diff);
+
       }
     }
   }
