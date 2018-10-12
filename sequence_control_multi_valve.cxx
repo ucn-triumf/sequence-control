@@ -95,8 +95,7 @@ extern "C" {
       LAM_SOURCE(0, 0xFFFFFF),                      /* event source */
       "MIDAS",                /* format */
       TRUE,                   /* enabled */
-      //      RO_RUNNING,             /* read only when running */
-      RO_ALWAYS,             /* read only when running */
+      RO_ALWAYS|RO_ODB,             /* read only when running */
 
       100,                    /* poll for 500ms */
       0,                      /* stop run after this event limit */
@@ -153,27 +152,15 @@ HNDLE h;
 // Is sequencing enabled
 bool gEnabled = true;
 
-// Do we use automatic cycling, instead of using values from ODB?
-bool gAutoCycling = false;
-// autocycle paramets
-int gAutoCycleIndex = 0; // cycle index
-const int gMaxAutoCycleIndex = 9; // 
-int gAutoCycleDelays[gMaxAutoCycleIndex] = {0, 120, 10, 80, 30, 50, 20, 5, 170};
+// index of which cycle we are in supercycle
+int gCycleIndex = 0;
 
-// This is how long (in sec) we delay opening the UCN valve.
-double gDelayTime;
-// This is how long (in sec) we leave gate valve open.
-double gValveOpenTime;
+// index of which supercycle we are in
+int gSuperCycleIndex = 0;
 
-struct SEQUENCE_SETTINGS2 {
-  double delayTime;
-  double valveOPenTime;
-  bool enable;
-  double blank;
-  bool autocycling;
-} static config_global2;
-
+// Maximum number of periods per cycle
 static const int MaxPeriods = 10;
+// Maximum number of cycles per super-cycle
 static const int MaxCycles = 20;
 
 struct SEQUENCE_SETTINGS {
@@ -199,19 +186,44 @@ struct SEQUENCE_SETTINGS {
 // Get the current settings from the ODB
 void setVariables(){
 
+  // We check the enable status bit first.  If the sequencer ODB variabl is disabled then we don't want to 
+  // update the whole config_global variable.  This will ensure that the local copy of config_global
+  // remains unchanged while editting of the ODB variables is on-going.
   int status=0;
-  INT size = sizeof(SEQUENCE_SETTINGS);
-  //printf("size %i\n",size);
-  //get actual record
+  bool sequencer_disabled;
+  INT size = sizeof(float);
+  status = db_get_value(hDB, 0,"/Equipment/UCNSequencer2018/Settings/enable", &sequencer_disabled, &size, TID_BOOL, FALSE);
+  if (status != DB_SUCCESS){
+    cm_msg(MERROR,"setVariables","Couldn't get the sequencer enable status.  Return code: %d", status);
+    return ;
+  }
+
+
+  // Set the enable state (keep separate copy, so we can disable if desired)
+  gEnabled = sequencer_disabled;
+
+  // if the sequencer isn't enabled then don't bother checking the rest of parameters.
+  if(!gEnabled){
+    printf("Settings... %i %i %i\n",config_global.numberPeriodsInCycle,
+	   config_global.DurationTimePeriod[0][1], config_global.DurationTimePeriod[0][0]);
+    return;
+  }
+
+  // Now grab the full copy of the ODB message...
+  size = sizeof(SEQUENCE_SETTINGS);
   status = db_get_record(hDB, settings_handle_global_, &config_global, &size, 0);
   if (status != DB_SUCCESS){
     cm_msg(MERROR,"SetBoardRecord","Couldn't get record. Return code: %d", status);
     return ;
   }
 
-  // Set the enable state (keep separate copy, so we can disable if desired)
-  gEnabled = config_global.enable;
-  
+
+  if(sequencer_disabled != config_global.enable){
+    cm_msg(MERROR,"SetBoardRecord","Warning, two reads of enable bit do not match: %i %i\n",
+	   sequencer_disabled,config_global.enable);
+  }
+
+
   // Check that we don't have too many periods
   if(config_global.numberPeriodsInCycle > MaxPeriods){
     cm_msg(MERROR,"Settings","The requested numberPeriodsInCycle of %i is greater than allowed max (%i); disabling sequencer.\n",config_global.numberPeriodsInCycle,MaxPeriods);
@@ -263,7 +275,11 @@ void setVariables(){
     }
   }
 
-  //  cm_msg(MERROR,"Settings","Finished setting and validating the new sequencer settings.\n");
+  // Reset the cycle index now that we have validated new paramters
+  gCycleIndex = 0;
+  gSuperCycleIndex = 0;
+
+  cm_msg(MINFO,"Settings","Finished setting and validating the new sequencer settings.\n");
 
 }
 
@@ -306,11 +322,10 @@ INT set_ppg_sequence(){
 
   // Reset the PPG
   mvme_write_value(myvme, PPG_BASE , 0x8);
-  printf("Resetting parameters\n");
   if(!gEnabled){
     mvme_write_value(myvme, PPG_BASE , 0x0);
     set_command(0,0,0,0,0);
-    printf("Disabled, nothing to do\n");
+    printf("Sequencer disabled, nothing to do\n");
     return 0;
   }
 
@@ -322,8 +337,6 @@ INT set_ppg_sequence(){
   // Use the external trigger to inititate the sequence
   mvme_write_value(myvme, PPG_BASE , 0x4);
 
-  cm_msg(MINFO,"Settings","Setting up new sequence: delayTime=%f, UCN valve open time=%f", gDelayTime,gValveOpenTime);     
-  
 
   // Reminder: these are PPG instructions types;  
   // 0 - Halt
@@ -345,13 +358,14 @@ INT set_ppg_sequence(){
   set_command(command_index++,0x0,   0xffffffff, 0x10, 0x100000);
 
   // We do a loop for each period. almost split times into a loop over 100 of DurationTime/100.0 seconds each.
-  // This is to get around 32-bit limitation in max limit per command (max of 42s otherwise)
+  // This is to get around 32-bit limitation in max limit per command (max of 42s otherwise).
+  // Keep track of how many periods and the period times;
+  int validPeriods =0;
+  std::string times = std::string("");char stmp[100];
 
   for(int i = 0; i < config_global.numberPeriodsInCycle; i++){
     
-    int cycle_index = 0;
-
-    double dtime = config_global.DurationTimePeriod[i][cycle_index];
+    double dtime = config_global.DurationTimePeriod[i][gCycleIndex];
 
     if(fabs(dtime) < 0.1) continue; // Ignore period of zero duration...
 
@@ -371,33 +385,19 @@ INT set_ppg_sequence(){
     set_command(command_index++,enabled_outputs, ~enabled_outputs,ppg_time,0x100000);
     set_command(command_index++,0x0,   0x0, 0x0, 0x300000);
 
+    validPeriods++;
+    sprintf(stmp,"%.1f ",dtime);	    
+    times += stmp;
   }
 
-  // First command; send pulse indicating start.
-  //set_command(0,0xc,0xfffffff3,0x1,0x100000);
-
-  // Delay for gDelayTime; split this into a loop over 100 of gDelayTime/100.0 seconds each.
-  // This is to get around 32-bit limitation in max limit per command.
-  //  unsigned int delay = (unsigned int)(gDelayTime*1e8/100.0);   // 10e8 cycles per second, loop of 100 (0x64) commands.
-  //set_command(1,0x0,   0x0, 0x0, 0x200064);
-  //set_command(2,0x400, 0xfffffbff,delay,0x100000);
-  //set_command(3,0x0,   0x0, 0x0, 0x300000);
-  
-
-  // Open valve and wait for specified time; again, set it to 
-  // On first clock, send pulse to V1720...
-  //unsigned int opentime = (unsigned int)(gValveOpenTime*1e8/100.0); 
-  //set_command(4,0x831, 0xfffff7ce,0x1,0x100000);
-  //set_command(5,0x0,   0x0, 0x0, 0x200064);
-  //set_command(6,0x801, 0xfffff7fe,opentime,0x100000);
-  //set_command(7,0x0,   0x0, 0x0, 0x300000);
-
-  // end of valve open time; close valve, send signal; then turn off all outputs.
-  //set_command(8,0xc0, 0xffffff3f,0x1,0x100000);
-  //set_command(9,0x0,  0xffffffff,0x1,0x100000);
-  
+  // Add a couple extra commands to finish the sequence.  
   set_command(command_index++,0x0,  0xffffffff,0x1,0x100000);
   set_command(command_index++,0x0, 0xffffffff,0x1,0x0);
+
+  cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i.\n",
+	 config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);     
+  
+
 
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
   return 0;
@@ -417,7 +417,7 @@ INT frontend_init()
 {
   int status=0;
 
-  printf("Initializing\n");
+  printf("Initializing UCNSequencer \n");
   setbuf(stdout,NULL);
   setbuf(stderr,NULL);
 
@@ -426,7 +426,6 @@ INT frontend_init()
   
   // Set am to A32 non-privileged Data
   mvme_set_am(myvme, MVME_AM_A32_ND);
-  //mvme_set_am(myvme, MVME_AM_A24);
   
   // Set dmode to D32
   mvme_set_dmode(myvme, MVME_DMODE_D32);
@@ -437,24 +436,13 @@ INT frontend_init()
   
   INT size = sizeof(SEQUENCE_SETTINGS);
 
-  //hotlink
-  printf("Setup hotlink\n");
+  //setup hotlink to settings directory
   status = db_open_record(hDB, settings_handle_global_, &config_global, size, MODE_READ, callback_func, NULL);
-  printf("Finished setting hotlink: %i %i %i %i %i %i %i %i %i\n",
-	 config_global.enable,
-	 config_global.infiniteCycles,
-	 config_global.numberPeriodsInCycle,
-	 config_global.numberCyclesInSuper,
-	 config_global.numberSuperCycles,
-	 config_global.Valve7State[0],
-	 config_global.Valve7State[1],
-	 config_global.Valve8State[0],
-	 config_global.Valve8State[1]);
   if (status != DB_SUCCESS){
     cm_msg(MERROR,"SetBoardRecord","Couldn't create hotlink . Return code: %d\n", status);
     return status;
   }
-  printf("Finished setting hotlink\n");
+
   // Write to test registers
   if(1){
     printf("Writing to 0x%x\n",PPG_BASE);
@@ -488,12 +476,14 @@ INT frontend_exit()
 
 INT begin_of_run(INT run_number, char *error)
 {
-                                                                         
-  if(gAutoCycling){
-    cm_msg(MINFO,"BOR","Using the auto-sequencing.");             
-    gAutoCycleIndex = 0;
-    set_ppg_sequence();
-  }
+
+
+  
+  cm_msg(MINFO,"BOR","Using the auto-sequencing.");             
+  gCycleIndex = 0;
+  gSuperCycleIndex = 0;
+  set_ppg_sequence();
+
 
   return SUCCESS;
 }
@@ -572,11 +562,15 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 
 /*-- Event readout -------------------------------------------------*/
 // Bank format
-// word 0 -> millisecond portion of current time
-// word 1 -> bit 0: are we in sequence? bit 1: did sequence just start?
-// word 2 -> is sequencer enabled?
-// word 3 -> delaytime (in ms)
-// word 4 -> opentime (in ms)
+// word 0 -> second portion of current time
+// word 1 -> millisecond portion of current time
+// word 2 -> second portion of cycle start time
+// word 3 -> millisecond portion of cycle start time
+// word 4 -> bit 0: are we in sequence? bit 1: did sequence just start?
+// word 5 -> is sequencer enabled?
+// word 6 -> cycle index
+// word 7 -> super-cycle index
+
 int previous_reg0_bit0 = 1;
 int first_event = 1;
 struct timeval cycle_start_time;
@@ -590,12 +584,15 @@ INT read_event(char *pevent, INT off)
   uint32_t *pdata32;
 
   /* create structured ADC0 bank of double words (i.e. 4-byte words)  */
-  bk_create(pevent, "SEQN", TID_DWORD, (void **)&pdata32);
+  bk_create(pevent, "USEQ", TID_DWORD, (void **)&pdata32);
 
   // Get sub-second time;
   struct timeval now;
   gettimeofday(&now,NULL);
+  *pdata32++ = now.tv_sec;
   *pdata32++ = now.tv_usec/1000;
+  *pdata32++ = cycle_start_time.tv_sec;
+  *pdata32++ = cycle_start_time.tv_usec/1000;
   
   
   // Save sequence status in word1.
@@ -628,25 +625,26 @@ INT read_event(char *pevent, INT off)
   *pdata32++ = word1;
   previous_reg0_bit0 = (reg0 & 1);
 
-  // save the enable, delayTime, opentim
   *pdata32++ = (int)gEnabled;
-  *pdata32++ = (int)(gDelayTime*1000.0);
-  *pdata32++ = (int)(gValveOpenTime*1000.0);
 
-  int size2 = bk_close(pevent, pdata32);    
 
   // If a sequence finished, then update the index if auto-cycling.
   //printf("sequence_finished %i %i\n",sequence_finished, (reg0 & 1));
   if(sequence_finished){
-    if(gAutoCycling){
-      cm_msg(MINFO,"SetBoardRecord","Finished sequence (index=%i)",gAutoCycleIndex);   
-      gAutoCycleIndex++; 
-      if(gAutoCycleIndex >= gMaxAutoCycleIndex){
-	gAutoCycleIndex = 0;
-      }      
-      set_ppg_sequence();
-    }
+    printf("Finished sequence (index=%i) %i",gCycleIndex, config_global.numberCyclesInSuper);
+    gCycleIndex++; 
+    if(gCycleIndex >= config_global.numberCyclesInSuper){
+      gCycleIndex = 0;
+      gSuperCycleIndex++;
+    }      
+    set_ppg_sequence();  
   }
+  
+  *pdata32++ = gCycleIndex;
+  *pdata32++ = config_global.numberCyclesInSuper;
+
+  int size2 = bk_close(pevent, pdata32);    
+
 
   return bk_size(pevent);
 }
