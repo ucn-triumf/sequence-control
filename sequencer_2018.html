@@ -8,10 +8,6 @@
    <script src="mhttpd.js"></script>
    <title>Sequencer</title>
    <style>
-    .aParent div {
-      float: left;
-      clear: none; 
-    }
 
     /* Left / right columns based on this page:
        https://www.w3schools.com/html/tryit.asp?filename=tryhtml_layout_float
@@ -20,19 +16,19 @@
     leftcolumn {
       float: left;
       width: 40%;
-      padding: 5px;
+      padding: 3px;
     }
 
 
     rightcolumn {
       float: left;
-      padding: 5px;
+      padding: 3px;
       width: 40%;
     }
 
     doublecolumn {
       float: left;
-      padding: 5px;
+      padding: 3px;
       width: 80%;
     }
 
@@ -45,17 +41,17 @@
 
    </style>
    <script>
-   gShowLife = false;
+//   gShowLife = false;
    function show_life(){      
-      if(gShowLife){
-         gShowLife = false;
-         document.getElementById("life_button").value = "Show Lifetime Parameters";
-         document.getElementById("lifetime_div").style.display = "none";
-      }else{
-         gShowLife = true;
-         document.getElementById("life_button").value = "Hide Lifetime Parameters";          
-         document.getElementById("lifetime_div").style.display = "block";
-      }
+  //    if(gShowLife){
+    //     gShowLife = false;
+      //   document.getElementById("life_button").value = "Show Lifetime Parameters";
+        // document.getElementById("lifetime_div").style.display = "none";
+     // }else{
+      //   //gShowLife = true;
+         //document.getElementById("life_button").value = "Hide Lifetime Parameters";          
+         //document.getElementById("lifetime_div").style.display = "block";
+      //}
    }
    gShowFull = false;
    function show_full(){      
@@ -70,6 +66,47 @@
       }
    }
 
+
+   function zero_settings(){
+      
+      var zero_paths = [];
+      var zero_values = [];
+      var i;
+      for(i = 0; i < 10; i++){         
+         zero_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod"+i+"[0-19]");
+         zero_paths.push("/Equipment/UCNSequencer2018/Settings/Valve"+i+"State[0-9]");
+         zero_values.push(0); zero_values.push(0);
+      }
+      
+      zero_paths.push("/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle");
+      zero_paths.push("/Equipment/UCNSequencer2018/Settings/numCyclesInSuper");
+      zero_values.push(0); zero_values.push(0);
+
+      var returno = {"paths":zero_paths, "values":zero_values};
+
+      return returno;
+      
+   }
+
+      
+
+   
+   function zero_seq_parameters(){
+
+      // Make the main JSON-RPC request
+      mjsonrpc_send_request([
+         mjsonrpc_make_request("db_paste", zero_settings())
+      ]).then(function (rpc) {         
+      }).then(function (x) {
+         document.getElementById('updateStatus').innerHTML = "Set all Sequencer parameters to zero";
+         document.getElementById('updateStatus').style.display = "block";
+      }).catch(function (error) {
+         alert("Problem!");
+      });
+      
+   }
+
+   
    function load_simple(){      
       var rad_time  = document.getElementById("irradiation_time").value;
       var open_time = document.getElementById("iv1_open_time").value;
@@ -78,10 +115,97 @@
       // call, then re-enable the sequencer (if it was originally enabled...)
       // need to zero out all settings first... that should be a standard call...
       // even have a button for that standard call.
-      alert(salert);
+
+      //alert(salert);
+      // First, set all parameters to zero...
+      // then setup parameters for simple sequence.      
+      var simple_paths = [];
+      var simple_values = [];
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle");
+      simple_values.push(2);
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/numCyclesInSuper");
+      simple_values.push(1);
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1[0]");
+      simple_values.push(rad_time);
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod2[0]");
+      simple_values.push(open_time);
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/Valve1State[1]");
+      simple_values.push(1);
+
+      console.log("make here");
+
+      // Make the main JSON-RPC request
+      mjsonrpc_send_request([
+         mjsonrpc_make_request("db_paste", zero_settings()),
+         mjsonrpc_make_request("db_paste", {"paths":simple_paths, "values":simple_values})
+      ]).then(function (rpc) {
+         console.log("Goy here");
+      }).then(function (x) {
+         var vstatus = "Set Sequencer for simple measurement; irradiate " + rad_time;
+         vstatus += " sec; IV1 open for " + open_time + " seconds.";         
+         document.getElementById('updateStatus').innerHTML = vstatus;
+         document.getElementById('updateStatus').style.display = "block";
+      }).catch(function (error) {
+         alert("Problem!");
+      });
 
    }
+   
 
+   function load_lifetime(){      
+      var rad_time  = document.getElementById("irradiation_time").value;
+      var open_time = document.getElementById("iv1_open_time").value;
+
+      if(isNaN(rad_time) || rad_time == ''){ alert("irradiation time not defined or not a number"); return;}
+      if(isNaN(open_time) || open_time == ''){ alert("IV1 open time not defined or not a number"); return;}
+      // To do: disable the sequencer (if enabled), set all parameters in one big
+      // call, then re-enable the sequencer (if it was originally enabled...)
+      // need to zero out all settings first... that should be a standard call...
+      // even have a button for that standard call.
+
+      // First, set all parameters to zero...
+      // then setup parameters for simple sequence.
+      
+      var delay_times = [0, 120, 10, 80, 30, 50, 20, 5];
+
+      var simple_paths = [];
+      var simple_values = [];
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle");
+      simple_values.push(3);
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/numCyclesInSuper");
+      simple_values.push(8);
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/Valve1State[1]");
+      simple_values.push(1);
+
+      var i;
+      for(i = 0; i < 8; i++){         
+         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1["+i+"]");
+         simple_values.push(rad_time);
+         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod2["+i+"]");
+         simple_values.push(delay_times[i]);
+         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod3["+i+"]");
+         simple_values.push(open_time);
+      }
+
+      console.log("make here");
+
+      // Make the main JSON-RPC request
+      mjsonrpc_send_request([
+         mjsonrpc_make_request("db_paste", zero_settings()),
+         mjsonrpc_make_request("db_paste", {"paths":simple_paths, "values":simple_values})
+      ]).then(function (rpc) {
+         console.log("Goy here");
+      }).then(function (x) {
+         var vstatus = "Set Sequencer for lifetime measurement; irradiate " + rad_time;
+         vstatus += " sec; variable delay time; IV1 open for " + open_time + " seconds.";         
+         document.getElementById('updateStatus').innerHTML = vstatus;
+         document.getElementById('updateStatus').style.display = "block";
+      }).catch(function (error) {
+         alert("Problem!");
+      });
+
+   }
+   
 
    function set_tables(){
 
@@ -144,7 +268,7 @@
           <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
         </tr>
         <tr>
-          <td style="width: 200px;">
+          <td style="width: 300px;">
             Enable:
           </td>
           <td style="width: 300px;">       
@@ -170,19 +294,23 @@
 
         <tr>
           <td>
+            <input type="button" id="load_simple_button" onclick="load_simple()" value="Load Simple Sequence" ></input>
            
           </td>
           <td>       
-            <input type="button" id="load_simple_button" onclick="load_simple()" value="Load Sequence" ></input>
+            <input type="button" id="load_lifetime_button" onclick="load_lifetime()" value="Load Lifetime Sequence" ></input>
           </td>
         </tr>
         <tr>
           <td style="width: 200px;">
-            <input type="button" id="life_button" onclick="show_life();" value="Show Lifetime Parameters" ></input>
           </td>
           <td >       
             <input type="button" id="full_button" onclick="show_full();" value="Show Full Set Parameters" ></input>
           </td>
+        </tr>
+        <tr>
+          <th colspan="2"> <div id="updateStatus">
+          </th>
         </tr>
       </table>
     </leftcolumn>
@@ -197,12 +325,10 @@
       
     </rightcolumn>
   </section>
-  <div>
-  </div>
   <hr>
   
-
   <div id="full_div" style="display:none">
+
 
 
     
@@ -228,6 +354,14 @@
               <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div> 
             </td>
           </tr>
+          <tr>
+            <td>
+            </td>
+            <td>
+              <input type="button" id="zero_button" onclick="zero_seq_parameters()" value="Set all parameters to zero" ></input>
+            </td>
+          </tr>
+          
         </table>
       </leftcolumn>
       
