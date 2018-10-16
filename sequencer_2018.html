@@ -12,8 +12,77 @@
       float: left;
       clear: none; 
     }
+
+    /* Left / right columns based on this page:
+       https://www.w3schools.com/html/tryit.asp?filename=tryhtml_layout_float
+       */
+
+    leftcolumn {
+      float: left;
+      width: 40%;
+      padding: 5px;
+    }
+
+
+    rightcolumn {
+      float: left;
+      padding: 5px;
+      width: 40%;
+    }
+
+    doublecolumn {
+      float: left;
+      padding: 5px;
+      width: 80%;
+    }
+
+    /* Clear floats after the columns */
+    section:after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
    </style>
    <script>
+   gShowLife = false;
+   function show_life(){      
+      if(gShowLife){
+         gShowLife = false;
+         document.getElementById("life_button").value = "Show Lifetime Parameters";
+         document.getElementById("lifetime_div").style.display = "none";
+      }else{
+         gShowLife = true;
+         document.getElementById("life_button").value = "Hide Lifetime Parameters";          
+         document.getElementById("lifetime_div").style.display = "block";
+      }
+   }
+   gShowFull = false;
+   function show_full(){      
+      if(gShowFull){
+         gShowFull = false;
+         document.getElementById("full_button").value = "Show Full Set Parameters";
+         document.getElementById("full_div").style.display = "none";
+      }else{
+         gShowFull = true;
+         document.getElementById("full_button").value = "Hide Full Set Parameters";          
+         document.getElementById("full_div").style.display = "block";
+      }
+   }
+
+   function load_simple(){      
+      var rad_time  = document.getElementById("irradiation_time").value;
+      var open_time = document.getElementById("iv1_open_time").value;
+
+      // To do: disable the sequencer (if enabled), set all parameters in one big
+      // call, then re-enable the sequencer (if it was originally enabled...)
+      // need to zero out all settings first... that should be a standard call...
+      // even have a button for that standard call.
+      alert(salert);
+
+   }
+
+
    function set_tables(){
 
       // Period Duration Time Table
@@ -68,68 +137,130 @@
 
 <div id="mmain">
 
-  <div class="aParent">
-    <div>
+  <section>
+    <leftcolumn>
       <table class="mtable">
         <tr>
-          <th colspan="2" class="mtableheader">Overall Parameters</th>
+          <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
         </tr>
         <tr>
-          <td style="width: 300px;">
+          <td style="width: 200px;">
             Enable:
           </td>
-          <td style="width: 200px;">       
+          <td style="width: 300px;">       
             <input type="checkbox" name="modbcheckbox" data-odb-path="/Equipment/UCNSequencer2018/Settings/enable"></input>
           </td>
         </tr>
         <tr>
-          <td style="width: 300px;">
-            # Periods in Cycle:
+          <td>
+            Irradiation Time:
           </td>
-          <td style="width: 200px;">       
-            <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle" data-odb-editable="1" ></div> 
+          <td>       
+            <input id="irradiation_time"></input>
           </td>
         </tr>
         <tr>
-          <td style="width: 300px;">
-            # Cycles in Super-Cycle:
+          <td>
+            IV1 Open Time:
           </td>
-          <td style="width: 200px;">       
-            <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div> 
+          <td>       
+            <input id="iv1_open_time"></input>
           </td>
         </tr>
-      </table>
-    </div>
 
-    <div>
-      <table class="mtable">
         <tr>
-          <th colspan="2" class="mtableheader">Configuration Notes</th>
+          <td>
+           
+          </td>
+          <td>       
+            <input type="button" id="load_simple_button" onclick="load_simple()" value="Load Sequence" ></input>
+          </td>
         </tr>
         <tr>
           <td style="width: 200px;">
-            Note 1:
+            <input type="button" id="life_button" onclick="show_life();" value="Show Lifetime Parameters" ></input>
           </td>
-          <td style="">       
-            Valve 1 is IV1 (UCN Valve)
+          <td >       
+            <input type="button" id="full_button" onclick="show_full();" value="Show Full Set Parameters" ></input>
           </td>
         </tr>
       </table>
+    </leftcolumn>
+  
+    
+    <rightcolumn id="lifetime_div" style="display:none">
+      <table class="mtable">
+        <tr>
+          <th colspan="2" class="mtableheader">Setup Lifetime Sequence</th>
+        </tr>
+      </table>
+      
+    </rightcolumn>
+  </section>
+  <div>
+  </div>
+  <hr>
+  
 
-    </div>
+  <div id="full_div" style="display:none">
+
+
+    
+    <section>
+      <leftcolumn>
+        <table class="mtable">
+          <tr>
+            <th colspan="2" class="mtableheader">Sequence Scale Settings</th>
+          </tr>
+          <tr>
+            <td style="width: 300px;">
+              # Periods in Cycle:
+            </td>
+            <td style="width: 200px;">       
+              <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle" data-odb-editable="1" ></div> 
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 300px;">
+              # Cycles in Super-Cycle:
+            </td>
+            <td style="width: 200px;">       
+              <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div> 
+            </td>
+          </tr>
+        </table>
+      </leftcolumn>
+      
+      <rightcolumn>
+        <table class="mtable">
+          <tr>
+            <th colspan="2" class="mtableheader">Configuration Notes</th>
+          </tr>
+          <tr>
+            <td style="width: 200px;">
+              Note 1:
+            </td>
+            <td style="">       
+              Valve 1 is IV1 (UCN Valve)
+            </td>
+          </tr>
+        </table>
+        
+      </rightcolumn>
+      
+    </section>
+    
+    
+    <section>
+      <doublecolumn>
+        <div id ="DurationTable">
+          
+        </div>
+      </doublecolumn>
+      
+    </section>
 
   </div>
   
-  
-  <div class="aParent">
-    <div>
-      <div id ="DurationTable">
-        
-      </div>
-
-    </div>
-        
-  </div>
-
 </body>
 </html>
