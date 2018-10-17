@@ -4,6 +4,7 @@
    <meta charset="UTF-8">
    <link rel="stylesheet" href="midas.css">
    <script src="controls.js"></script>
+   <script src="jquery.min.js"></script>
    <script src="midas.js"></script>
    <script src="mhttpd.js"></script>
    <title>Sequencer</title>
@@ -39,6 +40,9 @@
       clear: both;
     }
 
+    /* Make the cells dark is they are unused*/
+    /*    .UnavailableCells {      background-color: blue;     } */
+
     .blink {
       animation: blink-animation 1s steps(5, start) infinite;
       -webkit-animation: blink-animation 1s steps(5, start) infinite;
@@ -57,14 +61,19 @@
    </style>
    <script>
    var gStatusInflight = false;
-   function beamlineStatus(){
+   function statusPeriodicUpdate(){
       
       // don't make another request if the last request is still outstanding.
       if(gStatusInflight) return;     
       gStatusInflight = true;
-      
-      mjsonrpc_db_get_values(["/Equipment/BeamlineEpics/Variables"]).then(function(rpc) {    
-	 var beamlineepics = rpc.result.data[0].measured;
+
+      // Get beamline values; also get the current number of periods and cycles.
+      mjsonrpc_send_request([
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/BeamlineEpics/Variables"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle","/Equipment/UCNSequencer2018/Settings/numCyclesInSuper"]}),
+      ]).then(function (rpc) {         
+         
+	 var beamlineepics = rpc[0].result.data[0].measured;
 	 
 	 if(beamlineepics[1] && beamlineepics[3]){
 	    document.getElementById("beamline_status").innerHTML = "UCN beamline enabled (septum/BO are on)";
@@ -95,8 +104,19 @@
 	 document.getElementById("beamontime").innerHTML = ontime.toFixed(2);
 	 var offtime = parseFloat(beamlineepics[31])*0.000888111;
 	 document.getElementById("beamofftime").innerHTML = offtime.toFixed(2);
-	 
+
+         var nperiods = rpc[1].result.data[0];
+         var ncycles = rpc[1].result.data[1];
+         var i;
+         // Unset the unavailable, then go through and reset as appropriate.
+         // Doesn't work.. need to figure out how to do this right...
+//         $(".SeqTableClass").removeClass("UnavailableCells");
+ //        for(i = nperiods+1; i <= 10; i++)  $(".periodN"+i).addClass("UnavailableCells");
+   //      for(i = ncycles+1; i <= 20; i++)   $(".cycleN"+i).addClass("UnavailableCells");
+         
 	 gStatusInflight = false; // finished async routine
+
+
       }).catch(function(error) {
 	 if (error.request) {
 	    var s = mjsonrpc_decode_error(error);
@@ -140,7 +160,6 @@
       return returno;
       
    }
-
       
 
    
@@ -229,7 +248,7 @@
       simple_values.push(3);
       simple_paths.push("/Equipment/UCNSequencer2018/Settings/numCyclesInSuper");
       simple_values.push(8);
-      simple_paths.push("/Equipment/UCNSequencer2018/Settings/Valve1State[1]");
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/Valve1State[2]");
       simple_values.push(1);
 
       var i;
@@ -271,10 +290,12 @@
       DurationTableText +='<tr> <td> </td> <td colspan="20" style="text-align: center;">Cycles</td> <td colspan="8" style="text-align: center;">Valve #</td></tr><tr><td></td>';
       var i, j;
       for(i = 0; i < 20; i++){
-         DurationTableText += '<td style="width: 30px;text-align: center;"> ' + i +' </td>';
+         var cycle = i + 1;
+         DurationTableText += '<td style="width: 30px;text-align: center;"> ' + cycle +' </td>';
       }
       for(i = 0; i < 8; i++){
-         DurationTableText += '<td style="width: 30px;text-align: center;"> ' + i +' </td>';
+         var valve = i + 1;
+         DurationTableText += '<td style="width: 30px;text-align: center;"> ' + valve +' </td>';
       }
       DurationTableText += '</tr>'
 
@@ -283,12 +304,13 @@
          DurationTableText += '<tr>'
          DurationTableText += '<td style="width: 100px;"> Period ' + period + '</td>';
          for(j = 0; j < 20; j++){
-            DurationTableText += "<td style=''width: 30px; text-align: center;'> <div  name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
+            var cycle = j + 1;
+            DurationTableText += "<td style=''width: 30px; text-align: center;'> <div class='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
          }
 
          for(j = 0; j < 8; j++){
             var valve = j+1;
-            DurationTableText += "<td style=''width: 30px; text-align: center;'> <input type='checkbox' name='modbcheckbox' data-odb-path='/Equipment/UCNSequencer2018/Settings/Valve"+valve+"State["+i+"]'></input></td>";
+            DurationTableText += "<td style=''width: 30px; text-align: center'> <input type='checkbox' name='modbcheckbox' data-odb-path='/Equipment/UCNSequencer2018/Settings/Valve"+valve+"State["+i+"]'></input></td>";
          }
          DurationTableText += '</tr>'         
       }
@@ -304,7 +326,7 @@
 
 
 
-<body class="mcss" onload="set_tables();mhttpd_init('Sequencer');setInterval(beamlineStatus,5000);beamlineStatus()">
+<body class="mcss" onload="set_tables();mhttpd_init('Sequencer');setInterval(statusPeriodicUpdate,3000);statusPeriodicUpdate()">
 
 <!-- header and side navigation will be filled in mhttpd_start -->
 <div id="mheader"></div>
@@ -465,7 +487,6 @@
       </rightcolumn>
       
     </section>
-    
     
     <section>
       <doublecolumn>
