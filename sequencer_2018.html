@@ -7,6 +7,7 @@
    <script src="jquery.min.js"></script>
    <script src="midas.js"></script>
    <script src="mhttpd.js"></script>
+   <script src="sequencer_functions.js"></script>
    <title>Sequencer</title>
    <style>
 
@@ -138,8 +139,10 @@
          document.getElementById("full_button").value = "Hide Full Set Parameters";          
          document.getElementById("full_div").style.display = "block";
       }
+      
    }
 
+   
    function zero_settings(){
       
       var zero_paths = [];
@@ -497,6 +500,22 @@
       
     </section>
 
+    
+    <section>
+      <doublecolumn>
+        <table class="mtable">
+          <tr>
+            <td>
+              <input type="button" id="create_button" onclick="create_script()" value="Create script" ></input>
+            </td>
+            <td>
+              <a download="info.txt" id="downloadlink" style="display:none">Download Sequencer As Script</a>
+            </td>
+            
+          </tr>
+        </table>
+      </doublecolumn>
+    </section>   
   </div>
   
 </body>
