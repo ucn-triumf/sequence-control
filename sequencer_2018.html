@@ -72,6 +72,7 @@
       mjsonrpc_send_request([
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/BeamlineEpics/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle","/Equipment/UCNSequencer2018/Settings/numCyclesInSuper"]}),
+         mjsonrpc_make_request("cm_exist",{"name":"fe2018sequencer"}),
       ]).then(function (rpc) {         
          
 	 var beamlineepics = rpc[0].result.data[0].measured;
@@ -115,6 +116,20 @@
  //        for(i = nperiods+1; i <= 10; i++)  $(".periodN"+i).addClass("UnavailableCells");
    //      for(i = ncycles+1; i <= 20; i++)   $(".cycleN"+i).addClass("UnavailableCells");
          
+	 // Check the status of the sequencer frontend
+	 var prog_exist = rpc[2].result.status;
+	 console.log("sequence exist " + prog_exist);
+	 
+	 if(prog_exist == 1){
+	    $(".sequenceCtlEl").prop('disabled', false);
+            document.getElementById('updateStatus').style.display = "none";	 
+	 }else{
+	    $(".sequenceCtlEl").prop('disabled', true);
+            document.getElementById('updateStatus').innerHTML = "UCNSequencer program not running.\n Cannot control PPG.";
+            document.getElementById('updateStatus').style.color = "red";	 
+            document.getElementById('updateStatus').style.display = "block";	 
+	 }
+
 	 gStatusInflight = false; // finished async routine
 
 
@@ -388,7 +403,7 @@
             Enable:
           </td>
           <td style="width: 300px;">       
-            <input type="checkbox" name="modbcheckbox" data-odb-path="/Equipment/UCNSequencer2018/Settings/enable"></input>
+            <input class="sequenceCtlEl" type="checkbox" name="modbcheckbox" data-odb-path="/Equipment/UCNSequencer2018/Settings/enable"></input>
           </td>
         </tr>
         <tr>
@@ -396,7 +411,7 @@
             Irradiation Time:
           </td>
           <td>       
-            <input id="irradiation_time"></input>
+            <input class="sequenceCtlEl" id="irradiation_time"></input>
           </td>
         </tr>
         <tr>
@@ -404,24 +419,24 @@
             IV1 Open Time:
           </td>
           <td>       
-            <input id="iv1_open_time"></input>
+            <input class="sequenceCtlEl" id="iv1_open_time"></input>
           </td>
         </tr>
 
         <tr>
           <td>
-            <input type="button" id="load_simple_button" onclick="load_simple()" value="Load Simple Sequence" ></input>
+            <input class="sequenceCtlEl" type="button" id="load_simple_button" onclick="load_simple()" value="Load Simple Sequence" ></input>
            
           </td>
           <td>       
-            <input type="button" id="load_lifetime_button" onclick="load_lifetime()" value="Load Lifetime Sequence" ></input>
+            <input class="sequenceCtlEl" type="button" id="load_lifetime_button" onclick="load_lifetime()" value="Load Lifetime Sequence" ></input>
           </td>
         </tr>
         <tr>
           <td style="width: 250px;">
           </td>
           <td >       
-            <input type="button" id="full_button" onclick="show_full();" value="Show Full Set Parameters" ></input>
+            <input  type="button" id="full_button" onclick="show_full();" value="Show Full Set Parameters" ></input>
           </td>
         </tr>
         <tr>
