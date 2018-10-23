@@ -318,6 +318,7 @@ void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3
 // ch 14 -> Valve 7 state monitor
 // ch 15 -> Valve 8 state
 // ch 16 -> Valve 8 state monitor
+// ch 31 -> Signal to PPG indicating start of cycle.
 INT set_ppg_sequence(){
 
   // Reset the PPG
@@ -356,6 +357,8 @@ INT set_ppg_sequence(){
 
   // Add blank 100ns at the start of sequence...
   set_command(command_index++,0x0,   0xffffffff, 0x10, 0x100000);
+  // Then send pulse to V1720, indicating the start of the cycle
+  set_command(command_index++,0x80000000,   0x7fffffff, 0x1, 0x100000);
 
   // We do a loop for each period. almost split times into a loop over 100 of DurationTime/100.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command (max of 42s otherwise).
