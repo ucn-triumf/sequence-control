@@ -17,7 +17,7 @@
 
     leftcolumn {
       float: left;
-      width: 40%;
+      width: 44%;
       padding: 3px;
     }
 
@@ -25,13 +25,13 @@
     rightcolumn {
       float: left;
       padding: 3px;
-      width: 40%;
+      width: 44%;
     }
 
     doublecolumn {
       float: left;
       padding: 3px;
-      width: 80%;
+      width: 88%;
     }
 
     /* Clear floats after the columns */
@@ -308,12 +308,12 @@
          DurationTableText += '<td style="width: 100px;"> Period ' + period + '</td>';
          for(j = 0; j < 20; j++){
             var cycle = j + 1;
-            DurationTableText += "<td style=''width: 30px; text-align: center;'> <div class='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
+            DurationTableText += "<td style=''width: 35px; text-align: center;'> <div class='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
          }
 
          for(j = 0; j < 8; j++){
             var valve = j+1;
-            DurationTableText += "<td style=''width: 30px; text-align: center'> <input type='checkbox' name='modbcheckbox' data-odb-path='/Equipment/UCNSequencer2018/Settings/Valve"+valve+"State["+i+"]'></input></td>";
+            DurationTableText += "<td style=''width: 35px; text-align: center'> <input type='checkbox' name='modbcheckbox' data-odb-path='/Equipment/UCNSequencer2018/Settings/Valve"+valve+"State["+i+"]'></input></td>";
          }
          DurationTableText += '</tr>'         
       }
@@ -329,7 +329,7 @@
 
 
 
-<body class="mcss" onload="set_tables();mhttpd_init('Sequencer');setInterval(statusPeriodicUpdate,3000);statusPeriodicUpdate()">
+<body class="mcss" onload="set_tables();mhttpd_init('Sequencer2018');setInterval(statusPeriodicUpdate,3000);statusPeriodicUpdate()">
 
 <!-- header and side navigation will be filled in mhttpd_start -->
 <div id="mheader"></div>
@@ -348,10 +348,10 @@
           <th colspan="2" ><span id="beamline_status"></th>
         </tr>
         <tr>
-          <td style="width: 300px;">
+          <td style="width: 350px;">
             BL1 Extraction Current:
           </td>
-          <td style="width: 300px;">       
+          <td style="width: 350px;">       
 	    <span id="1vextractcur"></span>uA
 	  </td>
 	</tr>
@@ -384,7 +384,7 @@
           <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
         </tr>
         <tr>
-          <td style="width: 300px;">
+          <td style="width: 350px;">
             Enable:
           </td>
           <td style="width: 300px;">       
@@ -418,7 +418,7 @@
           </td>
         </tr>
         <tr>
-          <td style="width: 200px;">
+          <td style="width: 250px;">
           </td>
           <td >       
             <input type="button" id="full_button" onclick="show_full();" value="Show Full Set Parameters" ></input>
@@ -446,18 +446,18 @@
             <th colspan="2" class="mtableheader">Sequence Scale Settings</th>
           </tr>
           <tr>
-            <td style="width: 300px;">
+            <td style="width: 350px;">
               # Periods in Cycle:
             </td>
-            <td style="width: 200px;">       
+            <td style="width: 250px;">       
               <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle" data-odb-editable="1" ></div> 
             </td>
           </tr>
           <tr>
-            <td style="width: 300px;">
+            <td style="width: 350px;">
               # Cycles in Super-Cycle:
             </td>
-            <td style="width: 200px;">       
+            <td style="width: 250px;">       
               <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div> 
             </td>
           </tr>
@@ -478,7 +478,7 @@
             <th colspan="2" class="mtableheader">Configuration Notes</th>
           </tr>
           <tr>
-            <td style="width: 200px;">
+            <td style="width: 250px;">
               Note 1:
             </td>
             <td style="">       
