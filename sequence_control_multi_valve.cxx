@@ -318,7 +318,7 @@ void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3
 // ch 14 -> Valve 7 state monitor
 // ch 15 -> Valve 8 state
 // ch 16 -> Valve 8 state monitor
-// ch 31 -> Signal to PPG indicating start of cycle.
+// ch 31 -> Signal to V1720 indicating start of cycle.
 INT set_ppg_sequence(){
 
   // Reset the PPG
@@ -569,7 +569,7 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 // word 1 -> millisecond portion of current time
 // word 2 -> second portion of cycle start time
 // word 3 -> millisecond portion of cycle start time
-// word 4 -> bit 0: are we in sequence? bit 1: did sequence just start?
+// word 4 -> bit 0: are we in cycle? bit 1: did sequence just cycle?
 // word 5 -> is sequencer enabled?
 // word 6 -> cycle index
 // word 7 -> super-cycle index
@@ -585,7 +585,8 @@ INT read_event(char *pevent, INT off)
   bk_init32(pevent);
 
   uint32_t *pdata32;
-
+  double *pdata;
+  
   /* create structured ADC0 bank of double words (i.e. 4-byte words)  */
   bk_create(pevent, "USEQ", TID_DWORD, (void **)&pdata32);
 
@@ -609,7 +610,7 @@ INT read_event(char *pevent, INT off)
     // if last time we were not in sequence, then set bit that transition happened...
     if(!previous_reg0_bit0){
       word1 |= (1<<1);
-      printf("Started cycle \n");
+      cm_msg(MINFO,"read_event","Started cycle.");
       cycle_start_time = now;
     }
     
@@ -627,12 +628,14 @@ INT read_event(char *pevent, INT off)
   }
   *pdata32++ = word1;
   previous_reg0_bit0 = (reg0 & 1);
-
   *pdata32++ = (int)gEnabled;
+  *pdata32++ = gCycleIndex;
+  *pdata32++ = gSuperCycleIndex;
 
+
+  int size2 = bk_close(pevent, pdata32);    
 
   // If a sequence finished, then update the index if auto-cycling.
-  //printf("sequence_finished %i %i\n",sequence_finished, (reg0 & 1));
   if(sequence_finished){
     printf("Finished sequence (index=%i) %i",gCycleIndex, config_global.numberCyclesInSuper);
     gCycleIndex++; 
@@ -641,12 +644,33 @@ INT read_event(char *pevent, INT off)
       gSuperCycleIndex++;
     }      
     set_ppg_sequence();  
-  }
-  
-  *pdata32++ = gCycleIndex;
-  *pdata32++ = config_global.numberCyclesInSuper;
 
-  int size2 = bk_close(pevent, pdata32);    
+    // write a bank in which we store the complete set of settings for the PPG
+    // include the current cycle index, so we now where we are...
+    bk_create(pevent, "NSEQ", TID_DOUBLE, (void **)&pdata);
+    *pdata++ = gCycleIndex;
+    *pdata++ = config_global.enable;
+    *pdata++ = config_global.numberPeriodsInCycle;
+    *pdata++ = config_global.numberCyclesInSuper;
+    *pdata++ = config_global.infiniteCycles;
+    for(int i = 0; i < MaxPeriods; i++){
+      for(int j = 0; j < MaxCycles; j++){
+	*pdata++ = config_global.DurationTimePeriod[i][j];
+      }
+    }
+    for(int i = 0; i < MaxPeriods; i++){
+      *pdata++ = config_global.Valve1State[i];
+      *pdata++ = config_global.Valve2State[i];
+      *pdata++ = config_global.Valve3State[i];
+      *pdata++ = config_global.Valve4State[i];
+      *pdata++ = config_global.Valve5State[i];
+      *pdata++ = config_global.Valve6State[i];
+      *pdata++ = config_global.Valve7State[i];
+      *pdata++ = config_global.Valve8State[i];
+    }
+    int size3 = bk_close(pevent, pdata);    
+    
+  }
 
 
   return bk_size(pevent);
