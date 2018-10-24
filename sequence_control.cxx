@@ -253,7 +253,8 @@ INT set_ppg_sequence(){
     int status = db_find_key(hDB, 0, "/Equipment/UCNSequencer/Settings/delayTime", &hDelayKey);    
     if(status == DB_SUCCESS){
 
-      db_set_data_index2(hDB, hDelayKey, &gDelayTime, sizeof(gDelayTime), 0, TID_DOUBLE, FALSE);
+      //db_set_data_index2(hDB, hDelayKey, &gDelayTime, sizeof(gDelayTime), 0, TID_DOUBLE, FALSE); // old midas
+      db_set_data_index1(hDB, hDelayKey, &gDelayTime, sizeof(gDelayTime), 0, TID_DOUBLE, FALSE); // new midas
 
     }
 

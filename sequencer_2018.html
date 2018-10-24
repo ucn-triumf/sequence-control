@@ -25,7 +25,26 @@
     rightcolumn {
       float: left;
       padding: 3px;
-      width: 44%;
+      width: 42%;
+    }
+
+    column1 {
+      float: left;
+      width: 40%;
+      padding: 3px;
+    }
+
+
+    column2 {
+      float: left;
+      padding: 3px;
+      width: 22%;
+    }
+
+    column3 {
+      float: left;
+      padding: 3px;
+      width: 28%;
     }
 
     doublecolumn {
@@ -73,6 +92,7 @@
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/BeamlineEpics/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle","/Equipment/UCNSequencer2018/Settings/numCyclesInSuper"]}),
          mjsonrpc_make_request("cm_exist",{"name":"fe2018sequencer"}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Variables"]}),
       ]).then(function (rpc) {         
          
 	 var beamlineepics = rpc[0].result.data[0].measured;
@@ -128,6 +148,17 @@
             document.getElementById('updateStatus').innerHTML = "UCNSequencer program not running.\n Cannot control PPG.";
             document.getElementById('updateStatus').style.color = "red";	 
             document.getElementById('updateStatus').style.display = "block";	 
+	 }
+
+	 // Get the sequencer status 
+	 var seqstatus= rpc[3].result.data[0].useq;
+	 if(seqstatus[4] & 0x1){
+	    document.getElementById('incycle').innerHTML = 'yes';
+	    var timediff = seqstatus[0]-seqstatus[2];
+	    document.getElementById('timeincycle').innerHTML = timediff;
+	 }else{
+	    document.getElementById('incycle').innerHTML = 'no';
+	    document.getElementById('timeincycle').innerHTML = 'n/a';
 	 }
 
 	 gStatusInflight = false; // finished async routine
@@ -217,9 +248,9 @@
       simple_values.push(2);
       simple_paths.push("/Equipment/UCNSequencer2018/Settings/numCyclesInSuper");
       simple_values.push(1);
-      simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1[0]");
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod0[0]");
       simple_values.push(rad_time);
-      simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod2[0]");
+      simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1[0]");
       simple_values.push(open_time);
       simple_paths.push("/Equipment/UCNSequencer2018/Settings/Valve1State[1]");
       simple_values.push(1);
@@ -271,11 +302,11 @@
 
       var i;
       for(i = 0; i < 8; i++){         
-         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1["+i+"]");
+         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod0["+i+"]");
          simple_values.push(rad_time);
-         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod2["+i+"]");
+         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1["+i+"]");
          simple_values.push(delay_times[i]);
-         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod3["+i+"]");
+         simple_paths.push("/Equipment/UCNSequencer2018/Settings/DurationTimePeriod2["+i+"]");
          simple_values.push(open_time);
       }
 
@@ -308,7 +339,7 @@
       DurationTableText +='<tr> <td> </td> <td colspan="20" style="text-align: center;">Cycles</td> <td colspan="8" style="text-align: center;">Valve #</td></tr><tr><td></td>';
       var i, j;
       for(i = 0; i < 20; i++){
-         var cycle = i + 1;
+         var cycle = i;
          DurationTableText += '<td style="width: 30px;text-align: center;"> ' + cycle +' </td>';
       }
       for(i = 0; i < 8; i++){
@@ -318,11 +349,11 @@
       DurationTableText += '</tr>'
 
       for(i = 0; i < 10; i++){
-         var period = i + 1;
+         var period = i;
          DurationTableText += '<tr>'
          DurationTableText += '<td style="width: 100px;"> Period ' + period + '</td>';
          for(j = 0; j < 20; j++){
-            var cycle = j + 1;
+            var cycle = j;
             DurationTableText += "<td style=''width: 35px; text-align: center;'> <div class='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
          }
 
@@ -354,7 +385,7 @@
 
   <section>
 
-    <leftcolumn>
+    <column1>
       <table class="mtable">
         <tr>
           <th colspan="2" class="mtableheader">Beam Status</th>
@@ -363,10 +394,10 @@
           <th colspan="2" ><span id="beamline_status"></th>
         </tr>
         <tr>
-          <td style="width: 350px;">
+          <td style="width: 250px;">
             BL1 Extraction Current:
           </td>
-          <td style="width: 350px;">       
+          <td style="width: 300px;">       
 	    <span id="1vextractcur"></span>uA
 	  </td>
 	</tr>
@@ -391,18 +422,54 @@
 	  <td> <span id="beam_on_status"/> </td>
 	</tr>
       </table>
-    </leftcolumn>
+    </column1>
 
-    <rightcolumn>
+
+    <column2>
+      <table class="mtable">
+        <tr>
+          <th colspan="2" class="mtableheader">Sequencer Status</th>
+        </tr>
+        <tr>
+          <td> In cycle: </td>
+          <td> <span id="incycle"></span></td>
+	</tr>
+        <tr>
+          <td> Time into cycle (s): </td>
+          <td> <span id="timeincycle"></span></td>
+	</tr>
+	<tr>
+          <td style="width: 250px;">
+            Cycle #
+          </td>
+          <td style="width: 200px;">       
+            <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[6]" ></div> 
+          </td>
+        </tr>
+        <tr>
+	  <td>
+            Super Cycle #
+          </td>
+          <td>       
+            <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[7]" ></div> 
+          </td>
+	</tr>
+      </tr>
+
+      </table>
+    </column2>
+    
+
+    <column3>
       <table class="mtable">
         <tr>
           <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
         </tr>
         <tr>
-          <td style="width: 350px;">
+          <td style="width: 200px;">
             Enable:
           </td>
-          <td style="width: 300px;">       
+          <td style="width: 200px;">       
             <input class="sequenceCtlEl" type="checkbox" name="modbcheckbox" data-odb-path="/Equipment/UCNSequencer2018/Settings/enable"></input>
           </td>
         </tr>
@@ -426,14 +493,14 @@
         <tr>
           <td>
             <input class="sequenceCtlEl" type="button" id="load_simple_button" onclick="load_simple()" value="Load Simple Sequence" ></input>
-           
+            
           </td>
           <td>       
             <input class="sequenceCtlEl" type="button" id="load_lifetime_button" onclick="load_lifetime()" value="Load Lifetime Sequence" ></input>
           </td>
         </tr>
         <tr>
-          <td style="width: 250px;">
+          <td>
           </td>
           <td >       
             <input  type="button" id="full_button" onclick="show_full();" value="Show Full Set Parameters" ></input>
@@ -444,8 +511,8 @@
           </th>
         </tr>
       </table>
-    </rightcolumn>
-  
+    </column3>
+
   </section>
   <hr>
   
@@ -461,7 +528,7 @@
             <th colspan="2" class="mtableheader">Sequence Scale Settings</th>
           </tr>
           <tr>
-            <td style="width: 350px;">
+            <td style="width: 250px;">
               # Periods in Cycle:
             </td>
             <td style="width: 250px;">       
@@ -469,7 +536,7 @@
             </td>
           </tr>
           <tr>
-            <td style="width: 350px;">
+            <td style="width: 250px;">
               # Cycles in Super-Cycle:
             </td>
             <td style="width: 250px;">       
