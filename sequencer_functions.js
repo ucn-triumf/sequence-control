@@ -6,6 +6,7 @@ function create_script(){
   var script = "# Script for setting complicated cycle\n"
   script +=    "# Note, when setting ODB variables you need to remember that indexes start with zero.\n"
   script +=    "# Reset all the durations and valves states\n"
+  script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod0[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod1[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod2[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod3[*] 0'\n"
@@ -15,7 +16,6 @@ function create_script(){
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod7[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod8[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod9[*] 0'\n"
-  script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod10[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/Valve1State[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/Valve2State[*] 0'\n"
   script +=    "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/Valve3State[*] 0'\n"
@@ -39,7 +39,7 @@ function create_script(){
 
     var i,j;
     for(i = 0; i < 10; i++){
-      var period = i + 1;
+      var period = i;
       for(j = 0; j < 20; j++){        
         var value = seq_var["durationtimeperiod"+period][j];
         if(value != 0) script += "odbedit -c 'set /Equipment/UCNSequencer2018/Settings/DurationTimePeriod"+period+"["+j+"] "+value+"'\n"; 
