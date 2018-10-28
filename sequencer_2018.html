@@ -17,7 +17,7 @@
 
     leftcolumn {
       float: left;
-      width: 44%;
+      width: 25%;
       padding: 3px;
     }
 
@@ -44,7 +44,7 @@
     column3 {
       float: left;
       padding: 3px;
-      width: 28%;
+      width: 26%;
     }
 
     doublecolumn {
@@ -93,6 +93,7 @@
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle","/Equipment/UCNSequencer2018/Settings/numCyclesInSuper"]}),
          mjsonrpc_make_request("cm_exist",{"name":"fe2018sequencer"}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Variables"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/SourceEpics/Variables"]}),
       ]).then(function (rpc) {         
          
 	 var beamlineepics = rpc[0].result.data[0].measured;
@@ -159,6 +160,14 @@
 	 }else{
 	    document.getElementById('incycle').innerHTML = 'no';
 	    document.getElementById('timeincycle').innerHTML = 'n/a';
+	 }
+
+	 // Get the valve states
+	 var source_state= rpc[4].result.data[0].measured;
+	 if(source_state[42] == 1){
+	    document.getElementById('iv1_state').innerHTML = 'open';
+	 }else{
+	    document.getElementById('iv1_state').innerHTML = 'closed';
 	 }
 
 	 gStatusInflight = false; // finished async routine
@@ -454,64 +463,28 @@
             <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[7]" ></div> 
           </td>
 	</tr>
-      </tr>
+
+      </table>
+    </column2>
+
+    <column2>
+      <table class="mtable">
+        <tr>
+          <th colspan="2" class="mtableheader">Source/Valve Status</th>
+        </tr>
+        <tr>
+	  <td style="width: 250px;">
+            IV1 state:
+          </td>
+          <td style="width: 200px;">       
+	    <span id="iv1_state"></span>
+          </td>
+	</tr>
+	
 
       </table>
     </column2>
     
-
-    <column3>
-      <table class="mtable">
-        <tr>
-          <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
-        </tr>
-        <tr>
-          <td style="width: 200px;">
-            Enable:
-          </td>
-          <td style="width: 200px;">       
-            <input class="sequenceCtlEl" type="checkbox" name="modbcheckbox" data-odb-path="/Equipment/UCNSequencer2018/Settings/enable"></input>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            Irradiation Time:
-          </td>
-          <td>       
-            <input class="sequenceCtlEl" id="irradiation_time"></input>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            IV1 Open Time:
-          </td>
-          <td>       
-            <input class="sequenceCtlEl" id="iv1_open_time"></input>
-          </td>
-        </tr>
-
-        <tr>
-          <td>
-            <input class="sequenceCtlEl" type="button" id="load_simple_button" onclick="load_simple()" value="Load Simple Sequence" ></input>
-            
-          </td>
-          <td>       
-            <input class="sequenceCtlEl" type="button" id="load_lifetime_button" onclick="load_lifetime()" value="Load Lifetime Sequence" ></input>
-          </td>
-        </tr>
-        <tr>
-          <td>
-          </td>
-          <td >       
-            <input  type="button" id="full_button" onclick="show_full();" value="Hide Full Set Parameters" ></input>
-          </td>
-        </tr>
-        <tr>
-          <th colspan="2"> <div id="updateStatus">
-          </th>
-        </tr>
-      </table>
-    </column3>
 
   </section>
   <hr>
@@ -522,6 +495,52 @@
 
     
     <section>
+      <column3>
+	<table class="mtable">
+          <tr>
+            <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
+          </tr>
+          <tr>
+            <td style="width: 200px;">
+              Enable:
+            </td>
+            <td style="width: 200px;">       
+              <input class="sequenceCtlEl" type="checkbox" name="modbcheckbox" data-odb-path="/Equipment/UCNSequencer2018/Settings/enable"></input>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Irradiation Time:
+            </td>
+            <td>       
+              <input class="sequenceCtlEl" id="irradiation_time"></input>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              IV1 Open Time:
+            </td>
+            <td>       
+              <input class="sequenceCtlEl" id="iv1_open_time"></input>
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+              <input class="sequenceCtlEl" type="button" id="load_simple_button" onclick="load_simple()" value="Load Simple Sequence" ></input>
+              
+            </td>
+            <td>       
+              <input class="sequenceCtlEl" type="button" id="load_lifetime_button" onclick="load_lifetime()" value="Load Lifetime Sequence" ></input>
+            </td>
+          </tr>
+          <tr>
+            <th colspan="2"> <div id="updateStatus">
+            </th>
+          </tr>
+	</table>
+      </column3>
+
       <leftcolumn>
         <table class="mtable">
           <tr>
@@ -531,23 +550,23 @@
             <td style="width: 250px;">
               # Periods in Cycle:
             </td>
-            <td style="width: 250px;">       
+            <td style="width: 80px;">       
               <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle" data-odb-editable="1" ></div> 
             </td>
           </tr>
           <tr>
-            <td style="width: 250px;">
+            <td>
               # Cycles in Super-Cycle:
             </td>
-            <td style="width: 250px;">       
+            <td>       
               <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div> 
             </td>
           </tr>
           <tr>
             <td>
+              <input type="button" id="zero_button" onclick="zero_seq_parameters()" value="Set all parameters to zero" ></input>
             </td>
             <td>
-              <input type="button" id="zero_button" onclick="zero_seq_parameters()" value="Set all parameters to zero" ></input>
             </td>
           </tr>
           
