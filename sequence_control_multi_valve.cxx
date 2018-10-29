@@ -279,7 +279,7 @@ void setVariables(){
   gCycleIndex = 0;
   gSuperCycleIndex = 0;
 
-  cm_msg(MINFO,"Settings","Finished setting and validating the new sequencer settings.\n");
+  //cm_msg(MINFO,"Settings","Finished setting and validating the new sequencer settings.\n");
 
 }
 
@@ -300,6 +300,8 @@ void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3
     printf("PPG command line %i 0x%x 0x%x 0x%x 0x%x\n",i,reg1,reg2,reg3,reg4);
 
 }  
+
+struct timeval lastPrint;
 
 // Here's the plan for how to map the PPG outputs
 // ch 1 -> Valve 1 state
@@ -397,9 +399,15 @@ INT set_ppg_sequence(){
   set_command(command_index++,0x0,  0xffffffff,0x1,0x100000);
   set_command(command_index++,0x0, 0xffffffff,0x1,0x0);
 
-  cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i.\n",
-	 config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);     
+  // Write a description of the new cycle, but only if it hasn't been written in last five seconds
+  struct timeval now;
+  gettimeofday(&now,NULL);
   
+  if(now.tv_sec - lastPrint.tv_sec > 5){
+    cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i.\n",
+	   config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);     
+  }
+  lastPrint = now;
 
 
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
