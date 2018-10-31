@@ -320,7 +320,9 @@ struct timeval lastPrint;
 // ch 14 -> Valve 7 state monitor
 // ch 15 -> Valve 8 state
 // ch 16 -> Valve 8 state monitor
-// ch 31 -> Signal to V1720 indicating start of cycle.
+// ch 29 -> Signal to V1720 indicating start of period 2.
+// ch 30 -> Signal to V1720 indicating start of period 1.
+// ch 31 -> Signal to V1720 indicating start of cycle (period 0).
 INT set_ppg_sequence(){
 
   // Reset the PPG
@@ -390,6 +392,11 @@ INT set_ppg_sequence(){
     set_command(command_index++,enabled_outputs, ~enabled_outputs,ppg_time,0x100000);
     set_command(command_index++,0x0,   0x0, 0x0, 0x300000);
 
+    // Then send pulse to V1720, indicating the end of period
+    if(i == 0) set_command(command_index++,0x40000000,   0xbfffffff, 0x1, 0x100000);
+    if(i == 1) set_command(command_index++,0x20000000,   0xdfffffff, 0x1, 0x100000);
+
+
     validPeriods++;
     sprintf(stmp,"%.1f ",dtime);	    
     times += stmp;
@@ -404,7 +411,7 @@ INT set_ppg_sequence(){
   gettimeofday(&now,NULL);
   
   if(now.tv_sec - lastPrint.tv_sec > 5){
-    cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i.\n",
+    cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i.",
 	   config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);     
   }
   lastPrint = now;
@@ -572,16 +579,18 @@ extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 }
 
 /*-- Event readout -------------------------------------------------*/
-// Bank format
+// Bank format for USEQ
 // word 0 -> second portion of current time
 // word 1 -> millisecond portion of current time
 // word 2 -> second portion of cycle start time
 // word 3 -> millisecond portion of cycle start time
-// word 4 -> bit 0: are we in cycle? bit 1: did sequence just cycle?
+// word 4 -> bit 0: are we in cycle? bit 1: did cycle just start?
+//           bit 2: did cycle just end?
 // word 5 -> is sequencer enabled?
 // word 6 -> cycle index
 // word 7 -> super-cycle index
-
+// 
+// NSEQ is a full copy of the sequencer settings currently in the program.
 int previous_reg0_bit0 = 1;
 int first_event = 1;
 struct timeval cycle_start_time;
@@ -627,6 +636,7 @@ INT read_event(char *pevent, INT off)
       if(first_event){
 	first_event = 0;
       }else{
+      word1 |= (1<<2);
 	sequence_finished = 1;
 	double diff = now.tv_sec-cycle_start_time.tv_sec + ((float)(now.tv_usec-cycle_start_time.tv_usec))/1000000.0;
 	printf("Finished cycle; cycle time was %.3f sec \n",diff);
