@@ -163,6 +163,9 @@ static const int MaxPeriods = 10;
 // Maximum number of cycles per super-cycle
 static const int MaxCycles = 20;
 
+// On first event make sure to write NSEQ bank with current configuration.
+bool gFirstEvent = 1;
+
 struct SEQUENCE_SETTINGS {
   bool enable;  // enable the sequencing
   int numberPeriodsInCycle; // number of periods in cycle.
@@ -501,7 +504,7 @@ INT begin_of_run(INT run_number, char *error)
   gCycleIndex = 0;
   gSuperCycleIndex = 0;
   set_ppg_sequence();
-
+  gFirstEvent = 1;
 
   return SUCCESS;
 }
@@ -662,9 +665,13 @@ INT read_event(char *pevent, INT off)
       gSuperCycleIndex++;
     }      
     set_ppg_sequence();  
-
-    // write a bank in which we store the complete set of settings for the PPG
-    // include the current cycle index, so we now where we are...
+  }
+  
+  // If last sequence finished or this is the first event in the run, then 
+  // write a bank in which we store the complete set of settings for the PPG                                                                                        
+  // include the current cycle index, so we now where we are...     
+  if(sequence_finished || gFirstEvent){
+    printf("Writing NSEQ bank\n");
     bk_create(pevent, "NSEQ", TID_DOUBLE, (void **)&pdata);
     *pdata++ = gCycleIndex;
     *pdata++ = config_global.enable;
@@ -690,6 +697,7 @@ INT read_event(char *pevent, INT off)
     
   }
 
+  gFirstEvent = 0;
 
   return bk_size(pevent);
 }
