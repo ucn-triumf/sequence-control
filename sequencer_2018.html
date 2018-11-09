@@ -94,6 +94,7 @@
          mjsonrpc_make_request("cm_exist",{"name":"fe2018sequencer"}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/SourceEpics/Variables"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Runinfo"]}),
       ]).then(function (rpc) {         
          
 	 var beamlineepics = rpc[0].result.data[0].measured;
@@ -138,7 +139,6 @@
          
 	 // Check the status of the sequencer frontend
 	 var prog_exist = rpc[2].result.status;
-	 console.log("sequence exist " + prog_exist);
 	 
 	 if(prog_exist == 1){
 	    $(".sequenceCtlEl").prop('disabled', false);
@@ -152,13 +152,12 @@
 
 	 // Get the sequencer status 
 	 var seqstatus= rpc[3].result.data[0].useq;
+	 var timediff = seqstatus[0]-seqstatus[2];
+	 document.getElementById('timeincycle').innerHTML = timediff;
 	 if(seqstatus[4] & 0x1){
 	    document.getElementById('incycle').innerHTML = 'yes';
-	    var timediff = seqstatus[0]-seqstatus[2];
-	    document.getElementById('timeincycle').innerHTML = timediff;
 	 }else{
 	    document.getElementById('incycle').innerHTML = 'no';
-	    document.getElementById('timeincycle').innerHTML = 'n/a';
 	 }
 
 	 // Get the valve states
@@ -168,6 +167,24 @@
 	 }else{
 	    document.getElementById('iv1_state').innerHTML = 'closed';
 	 }
+
+	 if(source_state[143] == 1){
+	    document.getElementById('iv2_state').innerHTML = 'open';
+	 }else{
+	    document.getElementById('iv2_state').innerHTML = 'closed';
+	 }
+
+	 // Get the valve states
+	 var run_state= rpc[5].result.data[0];
+	 if(run_state.state == 3){
+	    document.getElementById('run_state').innerHTML = 'running';
+	 }else if(run_state.state == 1){
+	    document.getElementById('run_state').innerHTML = 'stopped';
+	 }else{
+	    document.getElementById('run_state').innerHTML = 'transition';
+	 }
+
+	 document.getElementById('run_number').innerHTML = run_state["run number"];
 
 	 gStatusInflight = false; // finished async routine
 
@@ -443,7 +460,7 @@
           <td> <span id="incycle"></span></td>
 	</tr>
         <tr>
-          <td> Time into cycle (s): </td>
+          <td> Time since last cycle start (s): </td>
           <td> <span id="timeincycle"></span></td>
 	</tr>
 	<tr>
@@ -469,6 +486,22 @@
     <column2>
       <table class="mtable">
         <tr>
+          <th colspan="2" class="mtableheader">Run Status</th>
+        </tr>
+        <tr>
+	  <td style="width: 250px;">
+            Run status:
+          </td>
+          <td style="width: 200px;">       
+	    <span id="run_state"></span>
+          </td>
+	</tr>
+	<tr>
+	  <td>     Run number: </td>
+          <td>  <span id="run_number"></span> </td>
+	</tr>
+	
+        <tr>
           <th colspan="2" class="mtableheader">Source/Valve Status</th>
         </tr>
         <tr>
@@ -478,6 +511,10 @@
           <td style="width: 200px;">       
 	    <span id="iv1_state"></span>
           </td>
+	</tr>
+	<tr>
+	  <td>     IV2 state: </td>
+          <td>  <span id="iv2_state"></span> </td>
 	</tr>
 	
 
