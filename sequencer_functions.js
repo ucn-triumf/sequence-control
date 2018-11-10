@@ -52,12 +52,16 @@ function create_script(){
     }
     
     // Make blob and make link to it...
+    var today = new Date();
+    
     var blob = new Blob([script], {type: "text/plain;charset=utf-8"});
     var blobUrl = URL.createObjectURL(blob);
     var link = document.getElementById("downloadlink"); // Or maybe get it from the current document
     link.style.display = "block";
     link.href = blobUrl;
-    link.download = "sequencer.sh";
+    var filename = "sequencer_"+ today.getFullYear()+(today.getMonth()+1)+today.getDate();
+    filename += "_"+today.getHours()+today.getMinutes()+today.getSeconds()+".sh";
+    link.download = filename;
     link.innerHTML = "Click here to download the file";
 
   }).catch(function(error) {
