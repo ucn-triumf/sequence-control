@@ -18,39 +18,45 @@
     leftcolumn {
       float: left;
       width: 25%;
-      padding: 3px;
+      padding: 1px;
     }
 
 
     rightcolumn {
       float: left;
-      padding: 3px;
+      padding: 1px;
       width: 45%;
     }
 
     column1 {
       float: left;
       width: 40%;
-      padding: 3px;
+      padding: 1px;
     }
 
 
     column2 {
       float: left;
-      padding: 3px;
+      padding: 1px;
       width: 22%;
     }
 
     column3 {
       float: left;
-      padding: 3px;
+      padding: 1px;
       width: 26%;
+    }
+
+    columnana {
+      float: left;
+      padding: 3px;
+      width: 46%;
     }
 
     doublecolumn {
       float: left;
-      padding: 3px;
-      width: 88%;
+      padding: 1px;
+      width: 75%;
     }
 
     /* Clear floats after the columns */
@@ -173,6 +179,12 @@
 	 }else{
 	    document.getElementById('iv2_state').innerHTML = 'closed';
 	 }
+
+         if(source_state[144] == 1){
+            document.getElementById('iv3_state').innerHTML = 'open';
+         }else{
+            document.getElementById('iv3_state').innerHTML = 'closed';
+         }
 
 	 // Get the valve states
 	 var run_state= rpc[5].result.data[0];
@@ -516,6 +528,11 @@
 	  <td>     IV2 state: </td>
           <td>  <span id="iv2_state"></span> </td>
 	</tr>
+        <tr>
+          <td>     IV3 state: </td>
+          <td>  <span id="iv3_state"></span> </td>
+        </tr>
+
 	
 
       </table>
@@ -647,9 +664,7 @@
         </table>
         
       </rightcolumn>
-      
     </section>
-    
     <section>
       <doublecolumn>
         <div id ="DurationTable">
@@ -657,28 +672,153 @@
         </div>
       </doublecolumn>
       
-    </section>
-
-    
-    <section>
-      <doublecolumn>
+      <column2>
         <table class="mtable">
           <tr>
 	    <td>
 	      <a href="https://ucn.triumf.ca/ucn-source/daq/midas-daq/ucn-sequence">Sequencer Documentation</a>
 	    </td>
-
+	  </tr>
+	  <tr>
             <td>
               <input type="button" id="create_button" onclick="create_script()" value="Save parameters as script" ></input>
             </td>
+	  </tr>
+	  <tr>
             <td>
               <a download="info.txt" id="downloadlink" style="display:none">Download Sequencer As Script</a>
             </td>            
           </tr>
         </table>
-      </doublecolumn>
+      </column2>
     </section>   
   </div>
-  
+
+
+   <hr>
+ 
+  <section>
+
+    <columnana>
+      <table class="mtable">
+        <tr>
+          <th colspan="11" class="mtableheader">Li-6 Online Analysis Per Period</th>
+        </tr>
+        <tr>
+          <td class="mtableheader" > Cycle Start Time </td>
+          <th colspan="10" class="mtableheader">UCN Counts Per Period</th>
+	</tr>
+        <tr>
+          <td> </td> <td> 0 </td> <td>1 </td> <td>2 </td> <td>3 </td> <td>4 </td> <td>5 </td> <td>6 </td> <td>7 </td> <td>8 </td> <td>9 </td> 
+	</tr>
+        <tr>
+          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[7]" ></div> </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod1[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod2[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod3[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod4[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod5[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod6[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[7]" ></div>  </td>
+	</tr>
+        <tr>
+          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[8]" ></div> </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod1[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod2[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod3[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod4[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod5[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod6[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[8]" ></div>  </td>
+	</tr>
+        <tr>
+          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[9]" ></div> </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod1[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod2[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod3[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod4[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod5[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod6[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[9]" ></div>  </td>
+	</tr>
+
+
+      </table>
+    </columnana>
+
+    <columnana>
+      <table class="mtable">
+        <tr>
+          <th colspan="11" class="mtableheader">He-3 DET1 Online Analysis Per Period</th>
+        </tr>
+        <tr>
+          <td class="mtableheader" > Cycle Start Time </td>
+          <th colspan="10" class="mtableheader">UCN Counts Per Period</th>
+	</tr>
+         <tr>
+           <td> </td> <td> 0 </td> <td>1 </td> <td>2 </td> <td>3 </td> <td>4 </td> <td>5 </td> <td>6 </td> <td>7 </td> <td>8 </td> <td>9 </td> 
+	</tr>
+        <tr>
+          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/CycleStartTimes[7]" ></div> </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod0[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod1[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod2[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod3[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod4[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod5[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod6[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod7[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod8[7]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod9[7]" ></div>  </td>
+	</tr>
+        <tr>
+          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/CycleStartTimes[8]" ></div> </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod0[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod1[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod2[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod3[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod4[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod5[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod6[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod7[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod8[8]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod9[8]" ></div>  </td>
+	</tr>
+        <tr>
+          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/CycleStartTimes[9]" ></div> </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod0[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod1[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod2[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod3[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod4[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod5[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod6[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod7[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod8[9]" ></div>  </td>
+          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod9[9]" ></div>  </td>
+	</tr>
+
+
+      </table>
+    </columnana>
+
+
+
+
+  </section>
+
+
+
+
+
 </body>
 </html>
