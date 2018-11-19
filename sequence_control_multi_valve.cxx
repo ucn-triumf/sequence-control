@@ -323,8 +323,16 @@ struct timeval lastPrint;
 // ch 14 -> Valve 7 state monitor
 // ch 15 -> Valve 8 state
 // ch 16 -> Valve 8 state monitor
-// ch 29 -> Signal to V1720 indicating start of period 2.
-// ch 30 -> Signal to V1720 indicating start of period 1.
+// ch 17 -> period 0 state signal
+// ch 18 -> period 1 state signal
+// ch 19 -> period 2 state signal
+// ch 20 -> period 3 state signal
+// ch 21 -> period 4 state signal
+// ch 22 -> period 5 state signal
+// ch 23 -> period 6 state signal
+// ch 24 -> period 7 state signal
+// ch 25 -> period 8 state signal
+// ch 26 -> period 9 state signal
 // ch 31 -> Signal to V1720 indicating start of cycle (period 0).
 INT set_ppg_sequence(){
 
@@ -379,7 +387,7 @@ INT set_ppg_sequence(){
 
     if(fabs(dtime) < 0.1) continue; // Ignore period of zero duration...
 
-    // figure out which valves are enabled.  For each open valve we set two 
+    // Figure out which valves are enabled.  For each open valve we set two 
     // outlets high.
     int enabled_outputs = 0;
     if(config_global.Valve1State[i]){enabled_outputs += ((0x3) << 0);}
@@ -390,15 +398,15 @@ INT set_ppg_sequence(){
     if(config_global.Valve6State[i]){enabled_outputs += ((0x3) << 10);}
     if(config_global.Valve7State[i]){enabled_outputs += ((0x3) << 12);}
     if(config_global.Valve8State[i]){enabled_outputs += ((0x3) << 14);}
+
+    // Add another output signal which indicates which period we are in.
+    enabled_outputs += ((0x1) << (16+i));
+
+    // Now write the actual commands
     unsigned int ppg_time = (unsigned int)(dtime*1e8/100.0);
     set_command(command_index++,0x0,   0x0, 0x0, 0x200064);
     set_command(command_index++,enabled_outputs, ~enabled_outputs,ppg_time,0x100000);
     set_command(command_index++,0x0,   0x0, 0x0, 0x300000);
-
-    // Then send pulse to V1720, indicating the end of period
-    if(i == 0) set_command(command_index++,0x40000000,   0xbfffffff, 0x1, 0x100000);
-    if(i == 1) set_command(command_index++,0x20000000,   0xdfffffff, 0x1, 0x100000);
-
 
     validPeriods++;
     sprintf(stmp,"%.1f ",dtime);	    
