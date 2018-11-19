@@ -40,6 +40,11 @@
       padding: 1px;
       width: 22%;
     }
+    column4 {
+      float: left;
+      padding: 1px;
+      width: 26%;
+    }
 
     column3 {
       float: left;
@@ -101,6 +106,7 @@
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/SourceEpics/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Runinfo"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Experiment/Edit On Start"]}),
       ]).then(function (rpc) {         
          
 	 var beamlineepics = rpc[0].result.data[0].measured;
@@ -197,6 +203,12 @@
 	 }
 
 	 document.getElementById('run_number').innerHTML = run_state["run number"];
+
+	 // Get the TCN states
+	 var edit_on_start= rpc[6].result.data[0];
+
+	 document.getElementById('tcn_number').innerHTML = edit_on_start["experiment number"];
+
 
 	 gStatusInflight = false; // finished async routine
 
@@ -495,7 +507,7 @@
       </table>
     </column2>
 
-    <column2>
+    <column4>
       <table class="mtable">
         <tr>
           <th colspan="2" class="mtableheader">Run Status</th>
@@ -504,13 +516,13 @@
 	  <td style="width: 250px;">
             Run status:
           </td>
-          <td style="width: 200px;">       
+          <td style="width: 300px;">       
 	    <span id="run_state"></span>
           </td>
 	</tr>
 	<tr>
-	  <td>     Run number: </td>
-          <td>  <span id="run_number"></span> </td>
+	  <td>     Run number (TCN): </td>
+          <td>  <span id="run_number"></span>   (<span id="tcn_number"></span>)  </td>
 	</tr>
 	
         <tr>
@@ -536,7 +548,7 @@
 	
 
       </table>
-    </column2>
+    </column4>
     
 
   </section>
