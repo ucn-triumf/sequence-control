@@ -306,6 +306,36 @@ void set_command(int i,  unsigned int reg1, unsigned int reg2, unsigned int reg3
 
 struct timeval lastPrint;
 
+// Short sequence of pulses at BOR for timing calibration...
+INT do_timing_sequence(){
+
+  set_command(0,0,0,0,0);  
+  
+  // Use the internal trigger to initiate the sequence
+  mvme_write_value(myvme, PPG_BASE , 0x0);
+
+  // Add blank 100ns at the start of sequence...
+  set_command(0,0x0,   0xffffffff, 0x10, 0x100000);
+
+  // 0.2s on, 0.8s off cycle.
+  set_command(1,0x0,   0x0, 0x0, 0x20ffff);
+  unsigned int on_time = (unsigned int)(0.05*1e8);
+  unsigned int off_time = (unsigned int)(0.05*1e8);
+  set_command(2,0x10000000,   0xefffffff,on_time,0x100000);
+  set_command(3,0x00000000,   0xffffffff,off_time,0x100000);
+  set_command(4,0x0,   0x0, 0x0, 0x300000);
+
+  // Register instruction address
+  mvme_write_value(myvme, PPG_BASE+8 , 0x0);
+
+  // Start the sequence
+
+  // Initiate the sequence
+  mvme_write_value(myvme, PPG_BASE , 0x1);
+
+}
+
+
 // Here's the plan for how to map the PPG outputs
 // ch 1 -> Valve 1 state
 // ch 2 -> Valve 1 state monitor
@@ -484,9 +514,11 @@ INT frontend_init()
     printf("Test registers: 0x%x 0x%x 0x%x 0x%x 0x%x \n",test0,test1,test2,test3,test4);
   }
 
-  // Grab values from PDB and update sequence 
+  // Grab values from ODB and update sequence 
   setVariables();
-  set_ppg_sequence();
+  //  set_ppg_sequence();
+
+  do_timing_sequence();
 
   return SUCCESS;
 }
@@ -505,10 +537,13 @@ INT frontend_exit()
 
 INT begin_of_run(INT run_number, char *error)
 {
-
-
   
   cm_msg(MINFO,"BOR","Using the auto-sequencing.");             
+
+  // Do a short timing sequence
+  do_timing_sequence();
+
+  // Now start the regular sequence
   gCycleIndex = 0;
   gSuperCycleIndex = 0;
   set_ppg_sequence();
