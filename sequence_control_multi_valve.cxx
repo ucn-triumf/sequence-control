@@ -514,10 +514,14 @@ INT frontend_init()
     printf("Test registers: 0x%x 0x%x 0x%x 0x%x 0x%x \n",test0,test1,test2,test3,test4);
   }
 
+  // Set up the sequence settings so that the sequencer does BOR after the digitizers
+  // and does EOR before the digitizers
+  cm_set_transition_sequence(TR_START, 550);
+  cm_set_transition_sequence(TR_STOP, 450);
+
   // Grab values from ODB and update sequence 
   setVariables();
   //  set_ppg_sequence();
-
   do_timing_sequence();
 
   return SUCCESS;
@@ -546,7 +550,7 @@ INT begin_of_run(INT run_number, char *error)
   // Now start the regular sequence
   gCycleIndex = 0;
   gSuperCycleIndex = 0;
-  set_ppg_sequence();
+  //set_ppg_sequence();
   gFirstEvent = 1;
 
   return SUCCESS;
