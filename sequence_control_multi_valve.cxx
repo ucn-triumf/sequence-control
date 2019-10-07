@@ -309,6 +309,10 @@ struct timeval lastPrint;
 // Short sequence of pulses at BOR for timing calibration...
 INT do_timing_sequence(){
 
+  printf("Setting up timing synchronization sequence\n");
+
+  // Reset the PPG
+  mvme_write_value(myvme, PPG_BASE , 0x8);
   set_command(0,0,0,0,0);  
   
   // Use the internal trigger to initiate the sequence
@@ -317,21 +321,26 @@ INT do_timing_sequence(){
   // Add blank 100ns at the start of sequence...
   set_command(0,0x0,   0xffffffff, 0x10, 0x100000);
 
-  // 0.2s on, 0.8s off cycle.
-  set_command(1,0x0,   0x0, 0x0, 0x20ffff);
-  unsigned int on_time = (unsigned int)(0.05*1e8);
-  unsigned int off_time = (unsigned int)(0.05*1e8);
+  // Pulse sequence: 100ns on, 0.2s off cycle.  Repeat 10 times
+  set_command(1,0x0,   0x0, 0x0, 0x20000a);
+  //  unsigned int on_time = (unsigned int)(0.0*1e8);
+  unsigned int on_time = 10;
+  unsigned int off_time = ((unsigned int)(0.2*1e8)) - 10;
   set_command(2,0x10000000,   0xefffffff,on_time,0x100000);
   set_command(3,0x00000000,   0xffffffff,off_time,0x100000);
   set_command(4,0x0,   0x0, 0x0, 0x300000);
+
+  // End the sequence
+  set_command(5,0x0, 0xffffffff,0x1,0x0);
 
   // Register instruction address
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
 
   // Start the sequence
-
-  // Initiate the sequence
   mvme_write_value(myvme, PPG_BASE , 0x1);
+  
+  // Wait 3 seconds for the sequence to finish.
+  sleep(3);
 
 }
 
@@ -363,7 +372,8 @@ INT do_timing_sequence(){
 // ch 24 -> period 7 state signal
 // ch 25 -> period 8 state signal
 // ch 26 -> period 9 state signal
-// ch 31 -> Signal to V1720 indicating start of cycle (period 0).
+// ch 29 -> time synchronization signal (see do_timing_sequence())
+// ch 32 -> Signal to V1720 indicating start of cycle (period 0).
 INT set_ppg_sequence(){
 
   // Reset the PPG
@@ -393,7 +403,6 @@ INT set_ppg_sequence(){
   // 5 - Return from subroutine
   // 6 - Branch          ( 20 bit data used for address )
 
-
   // ----------------------------------------
   // Start writing the instruction set
   // All commands consist of 128-bits, spread across 4 32-bit words
@@ -402,8 +411,8 @@ INT set_ppg_sequence(){
 
   // Add blank 100ns at the start of sequence...
   set_command(command_index++,0x0,   0xffffffff, 0x10, 0x100000);
-  // Then send pulse to V1720, indicating the start of the cycle
-  set_command(command_index++,0x80000000,   0x7fffffff, 0x1, 0x100000);
+  // Then send pulse to V1725, indicating the start of the cycle
+  set_command(command_index++,0x80000000,   0x7fffffff, 0x10, 0x100000);
 
   // We do a loop for each period. almost split times into a loop over 100 of DurationTime/100.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command (max of 42s otherwise).
@@ -521,8 +530,7 @@ INT frontend_init()
 
   // Grab values from ODB and update sequence 
   setVariables();
-  //  set_ppg_sequence();
-  do_timing_sequence();
+  set_ppg_sequence();
 
   return SUCCESS;
 }
@@ -550,7 +558,7 @@ INT begin_of_run(INT run_number, char *error)
   // Now start the regular sequence
   gCycleIndex = 0;
   gSuperCycleIndex = 0;
-  //set_ppg_sequence();
+  set_ppg_sequence();
   gFirstEvent = 1;
 
   return SUCCESS;
@@ -559,6 +567,9 @@ INT begin_of_run(INT run_number, char *error)
 /*-- End of Run ----------------------------------------------------*/
 INT end_of_run(INT run_number, char *error)
 {
+
+  // Do a short timing sequence
+  do_timing_sequence();
 
   return SUCCESS;
 }
