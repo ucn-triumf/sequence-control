@@ -321,10 +321,10 @@ INT do_timing_sequence(){
   // Add blank 100ns at the start of sequence...
   set_command(0,0x0,   0xffffffff, 0x10, 0x100000);
 
-  // Pulse sequence: 100ns on, 0.2s off cycle.  Repeat 10 times
+  // Pulse sequence: 250ns on, 0.2s off cycle.  Repeat 10 times
   set_command(1,0x0,   0x0, 0x0, 0x20000a);
   //  unsigned int on_time = (unsigned int)(0.0*1e8);
-  unsigned int on_time = 10;
+  unsigned int on_time = 25;
   unsigned int off_time = ((unsigned int)(0.2*1e8)) - 10;
   set_command(2,0x10000000,   0xefffffff,on_time,0x100000);
   set_command(3,0x00000000,   0xffffffff,off_time,0x100000);
@@ -373,7 +373,7 @@ INT do_timing_sequence(){
 // ch 25 -> period 8 state signal
 // ch 26 -> period 9 state signal
 // ch 29 -> time synchronization signal (see do_timing_sequence())
-// ch 32 -> Signal to V1720 indicating start of cycle (period 0).
+// ch 32 -> Signal to V1725/chronobox indicating start of cycle (period 0).
 INT set_ppg_sequence(){
 
   // Reset the PPG
@@ -411,8 +411,8 @@ INT set_ppg_sequence(){
 
   // Add blank 100ns at the start of sequence...
   set_command(command_index++,0x0,   0xffffffff, 0x10, 0x100000);
-  // Then send pulse to V1725, indicating the start of the cycle
-  set_command(command_index++,0x80000000,   0x7fffffff, 0x10, 0x100000);
+  // Then send 250ns pulse to V1725, indicating the start of the cycle
+  set_command(command_index++,0x80000000,   0x7fffffff, 25, 0x100000);
 
   // We do a loop for each period. almost split times into a loop over 100 of DurationTime/100.0 seconds each.
   // This is to get around 32-bit limitation in max limit per command (max of 42s otherwise).
