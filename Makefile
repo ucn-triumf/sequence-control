@@ -10,7 +10,7 @@ LIBS = -lm -lz -lutil -lnsl -lpthread -lrt -L/home/lindner/packages/vmisft-7433-
 
 DRV_DIR         = $(MIDASSYS)/drivers
 INC_DIR         = $(MIDASSYS)/include
-LIB_DIR         = $(MIDASSYS)/linux/lib
+LIB_DIR         = $(MIDASSYS)/lib
 
 # MIDAS library
 MIDASLIBS = $(LIB_DIR)/libmidas.a
@@ -18,16 +18,16 @@ MIDASLIBS = $(LIB_DIR)/libmidas.a
 # ROOT library
 ROOTLIBS = $(shell $(ROOTSYS)/bin/root-config --libs) -lThread -Wl,-rpath,$(ROOTSYS)/lib
 
-all: sequence_control.exe sequence_control_multi_valve.exe 
+all: sequence_control_multi_valve.exe 
 
 gefvme.o: $(MIDASSYS)/drivers/vme/vmic/gefvme.c
-	gcc -c -o $@ -O2 -g -Wall -Wuninitialized $< -I$(MIDASSYS)/include
+	g++ -c -o $@ -O2 -g -Wall -Wuninitialized $< -I$(MIDASSYS)/include
 
 vmicvme.o: $(MIDASSYS)/drivers/vme/vmic/vmicvme.c
-	gcc -c -o $@ -O2 -g -Wall -Wuninitialized $(CFLAGS) $<
+	g++ -c -o $@ -O2 -g -Wall -Wuninitialized $(CFLAGS) $<
 
 %.o: $(MIDASSYS)/drivers/vme/%.c
-	gcc -c -o $@ -O2 -g -Wall -Wuninitialized $< -I$(MIDASSYS)/include
+	g++ -c -o $@ -O2 -g -Wall -Wuninitialized $< -I$(MIDASSYS)/include
 
 #sequence_control.exe: $(MIDASLIBS) $(LIB_DIR)/mfe.o sequence_control.o vmicvme.o 
 #	$(CXX) -o $@ $(CFLAGS) $(OSFLAGS) $^ $(MIDASLIBS) $(LIBS) #-lvme
@@ -40,7 +40,7 @@ sequence_control_multi_valve.exe: $(MIDASLIBS) $(LIB_DIR)/mfe.o sequence_control
 
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(OSFLAGS) -c $<
+	$(CXX) $(CFLAGS) $(OSFLAGS) -c $<
 
 %.o: %.cxx
 	$(CXX) $(CXXFLAGS) $(OSFLAGS) -c $<

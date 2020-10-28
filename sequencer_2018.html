@@ -121,6 +121,7 @@
 	 
 	 document.getElementById("1vextractcur").innerHTML = parseFloat(beamlineepics[38]).toFixed(2);
 	 document.getElementById("10secbeamcur").innerHTML = parseFloat(beamlineepics[20]).toFixed(2);
+	 document.getElementById("predictedbeamcur").innerHTML = parseFloat(beamlineepics[37]).toFixed(2);
 	 if(beamlineepics[32] == 1){
 	    document.getElementById("ksm_status").innerHTML = "In ON/OFF sequence"
 	 }else{
@@ -451,7 +452,11 @@
 	  </td>
 	</tr>
         <tr>
-          <td> BL1U Beam Current: </td>
+          <td> BL1U Predicted Beam Current: </td>
+	  <td> <span id="predictedbeamcur"></span>uA (10sec avg) </td>
+	</tr>
+        <tr>
+          <td> BL1U TNIM2 Beam Current: </td>
 	  <td> <span id="10secbeamcur"></span>uA (10sec avg) </td>
 	</tr>
         <tr>

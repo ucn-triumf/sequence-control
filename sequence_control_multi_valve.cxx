@@ -33,26 +33,19 @@ an infinite number of super-cycles
 #include <sys/time.h>
 #include <assert.h>
 #include "midas.h"
+#include "mfe.h"
 #include "mvmestd.h"
 #include <math.h>
 
 
 
-extern "C" {
-
-}
-
-/* make frontend functions callable from the C framework */
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*-- Globals -------------------------------------------------------*/
 
 /* The frontend name (client name) as seen by other MIDAS clients   */
-   char *frontend_name = "fe2018sequencer";
+   const char *frontend_name = "fe2018sequencer";
 /* The frontend file name, don't change it */
-   char *frontend_file_name = __FILE__;
+   const char *frontend_file_name = __FILE__;
 
 /* frontend_loop is called periodically if this variable is TRUE    */
    BOOL frontend_call_loop = FALSE;
@@ -112,9 +105,7 @@ extern "C" {
     {""}
   };
 
-#ifdef __cplusplus
-}
-#endif
+
 /********************************************************************\
               Callback routines for system transitions
 
@@ -325,7 +316,7 @@ INT do_timing_sequence(){
   set_command(1,0x0,   0x0, 0x0, 0x20000a);
   //  unsigned int on_time = (unsigned int)(0.0*1e8);
   unsigned int on_time = 25;
-  unsigned int off_time = ((unsigned int)(0.2*1e8)) - 10;
+  unsigned int off_time = ((unsigned int)(0.2*1e8)) - 25;
   set_command(2,0x10000000,   0xefffffff,on_time,0x100000);
   set_command(3,0x00000000,   0xffffffff,off_time,0x100000);
   set_command(4,0x0,   0x0, 0x0, 0x300000);
@@ -601,7 +592,7 @@ INT frontend_loop()
 \********************************************************************/
 
 /*-- Trigger event routines ----------------------------------------*/
-extern "C" INT poll_event(INT source, INT count, BOOL test)
+INT poll_event(INT source, INT count, BOOL test)
 /* Polling routine for events. Returns TRUE if event
    is available. If test equals TRUE, don't return. The test
    flag is used to time the polling */
@@ -624,7 +615,7 @@ extern "C" INT poll_event(INT source, INT count, BOOL test)
 }
 
 /*-- Interrupt configuration ---------------------------------------*/
-extern "C" INT interrupt_configure(INT cmd, INT source, PTYPE adr)
+ INT interrupt_configure(INT cmd, INT source, PTYPE adr)
 {
    switch (cmd) {
    case CMD_INTERRUPT_ENABLE:
