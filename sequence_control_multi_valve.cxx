@@ -45,8 +45,9 @@ an infinite number of super-cycles
 /* The frontend name (client name) as seen by other MIDAS clients   */
    const char *frontend_name = "fe2018sequencer";
 /* The frontend file name, don't change it */
-   const char *frontend_file_name = __FILE__;
+const char *frontend_file_name = __FILE__;
 
+BOOL equipment_common_overwrite = FALSE;
 /* frontend_loop is called periodically if this variable is TRUE    */
    BOOL frontend_call_loop = FALSE;
 
@@ -82,7 +83,7 @@ an infinite number of super-cycles
   EQUIPMENT equipment[] = {
 
     {"UCNSequencer2018",               /* equipment name */
-     {1, TRIGGER_ALL,         /* event ID, trigger mask */
+     {1, 0,         /* event ID, trigger mask */
       "SYSTEM",               /* event buffer */
       EQ_PERIODIC,              /* equipment type */
       LAM_SOURCE(0, 0xFFFFFF),                      /* event source */
@@ -323,16 +324,15 @@ INT do_timing_sequence(){
 
   // End the sequence
   set_command(5,0x0, 0xffffffff,0x1,0x0);
-
   // Register instruction address
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
-
   // Start the sequence
   mvme_write_value(myvme, PPG_BASE , 0x1);
-  
   // Wait 3 seconds for the sequence to finish.
   sleep(3);
 
+  // Apparently need return value
+  return 0;
 }
 
 
@@ -458,7 +458,9 @@ INT set_ppg_sequence(){
   lastPrint = now;
 
 
+  printf("set value\n");
   mvme_write_value(myvme, PPG_BASE+8 , 0x0);
+  printf("returning\n");
   return 0;
 
 }
@@ -506,7 +508,7 @@ INT frontend_init()
   if(1){
     printf("Writing to 0x%x\n",PPG_BASE);
     int test0 = mvme_read_value(myvme, PPG_BASE);
-    mvme_write_value(myvme, PPG_BASE+4 , 0xdeadbeef);
+    mvme_write_value(myvme, PPG_BASE+4 , 0xbeefbeef);
     int test1 = mvme_read_value(myvme, PPG_BASE+4);
     int test2 = mvme_read_value(myvme, PPG_BASE+0x20);
     int test3 = mvme_read_value(myvme, PPG_BASE+0x18);
@@ -544,14 +546,16 @@ INT begin_of_run(INT run_number, char *error)
   cm_msg(MINFO,"BOR","Using the auto-sequencing.");             
 
   // Do a short timing sequence
-  do_timing_sequence();
+  INT result = do_timing_sequence();
 
+  //printf("Result %i\n",result);
   // Now start the regular sequence
   gCycleIndex = 0;
   gSuperCycleIndex = 0;
   set_ppg_sequence();
   gFirstEvent = 1;
 
+  printf("Finished BOR\n");
   return SUCCESS;
 }
 
@@ -649,7 +653,7 @@ struct timeval cycle_start_time;
 INT read_event(char *pevent, INT off)
 {
 
-  //printf("read event\n");
+  //  printf("read event\n");
   /* init bank structure */
   bk_init32(pevent);
 
@@ -666,7 +670,8 @@ INT read_event(char *pevent, INT off)
   *pdata32++ = now.tv_usec/1000;
   *pdata32++ = cycle_start_time.tv_sec;
   *pdata32++ = cycle_start_time.tv_usec/1000;
-  
+
+  //  printf("read event %i %i\n",now.tv_sec, cycle_start_time.tv_sec);
   
   // Save sequence status in word1.
   int reg0 = mvme_read_value(myvme, PPG_BASE);
