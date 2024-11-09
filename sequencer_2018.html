@@ -107,6 +107,7 @@
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/SourceEpics/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Runinfo"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Experiment/Edit On Start"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCN2EpPha5Oth/Variables"]}),
       ]).then(function (rpc) {         
          
 	 var beamlineepics = rpc[0].result.data[0].measured;
@@ -174,24 +175,24 @@
 	 }
 
 	 // Get the valve states
-	 var source_state= rpc[4].result.data[0].measured;
-	 if(source_state[42] == 1){
+	 var source_state= rpc[7].result.data[0].measured;
+	 if(source_state[58] == 1){
 	    document.getElementById('iv1_state').innerHTML = 'open';
 	 }else{
 	    document.getElementById('iv1_state').innerHTML = 'closed';
 	 }
 
-	 if(source_state[143] == 1){
-	    document.getElementById('iv2_state').innerHTML = 'open';
-	 }else{
-	    document.getElementById('iv2_state').innerHTML = 'closed';
-	 }
+//	 if(source_state[143] == 1){
+//	    document.getElementById('iv2_state').innerHTML = 'open';/
+//	 }else{/
+//	    document.getElementById('iv2_state').innerHTML = 'closed';
+//	 }
 
-         if(source_state[144] == 1){
-            document.getElementById('iv3_state').innerHTML = 'open';
-         }else{
-            document.getElementById('iv3_state').innerHTML = 'closed';
-         }
+    //     if(source_state[144] == 1){
+  //          document.getElementById('iv3_state').innerHTML = 'open';
+      //   }else{
+        //    document.getElementById('iv3_state').innerHTML = 'closed';
+        // }
 
 	 // Get the valve states
 	 var run_state= rpc[5].result.data[0];
@@ -541,15 +542,8 @@
 	    <span id="iv1_state"></span>
           </td>
 	</tr>
-	<tr>
-	  <td>     IV2 state: </td>
-          <td>  <span id="iv2_state"></span> </td>
-	</tr>
-        <tr>
-          <td>     IV3 state: </td>
-          <td>  <span id="iv3_state"></span> </td>
-        </tr>
 
+	
 	
 
       </table>
