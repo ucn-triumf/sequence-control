@@ -110,115 +110,115 @@
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCN2EpPha5Oth/Variables"]}),
       ]).then(function (rpc) {
 
-	 var beamlineepics = rpc[0].result.data[0].measured;
+        var beamlineepics = rpc[0].result.data[0].measured;
 
-	 if(beamlineepics[1] && beamlineepics[3]){
-	    document.getElementById("beamline_status").innerHTML = "UCN beamline enabled (septum/BO are on)";
-	    document.getElementById("beamline_status").style.color = 'green';
-	 }else{
-	    document.getElementById("beamline_status").innerHTML = "UCN beamline disabled (septum or BO are off)";
-	    document.getElementById("beamline_status").style.color = 'red';
-	 }
+        if(beamlineepics[1] && beamlineepics[3]){
+            document.getElementById("beamline_status").innerHTML = "UCN beamline enabled (septum/BO are on)";
+            document.getElementById("beamline_status").style.color = 'green';
+        }else{
+            document.getElementById("beamline_status").innerHTML = "UCN beamline disabled (septum or BO are off)";
+            document.getElementById("beamline_status").style.color = 'red';
+        }
 
-	 document.getElementById("1vextractcur").innerHTML = parseFloat(beamlineepics[38]).toFixed(2);
-	 document.getElementById("10secbeamcur").innerHTML = parseFloat(beamlineepics[20]).toFixed(2);
-	 document.getElementById("predictedbeamcur").innerHTML = parseFloat(beamlineepics[37]).toFixed(2);
-	 if(beamlineepics[32] == 1){
-	    document.getElementById("ksm_status").innerHTML = "In ON/OFF sequence"
-	 }else{
-	    document.getElementById("ksm_status").innerHTML = "Not in ON/OFF sequence"
-	 }
-	 if(beamlineepics[29] == 1){
-	    document.getElementById("beam_on_status").innerHTML = "Being irradiated"
-	    document.getElementById("beam_on_status").style.color = 'blue';
-	    document.getElementById("beam_on_status").className = 'blink';
-	 }else{
-	    document.getElementById("beam_on_status").innerHTML = "Not being irradiated"
-	    document.getElementById("beam_on_status").style.color = 'black';
-	    document.getElementById("beam_on_status").className = '';
-	 }
-	 var ontime = parseFloat(beamlineepics[30])*0.000888111;
-	 document.getElementById("beamontime").innerHTML = ontime.toFixed(2);
-	 var offtime = parseFloat(beamlineepics[31])*0.000888111;
-	 document.getElementById("beamofftime").innerHTML = offtime.toFixed(2);
+        document.getElementById("1vextractcur").innerHTML = parseFloat(beamlineepics[38]).toFixed(2);
+        document.getElementById("10secbeamcur").innerHTML = parseFloat(beamlineepics[20]).toFixed(2);
+        document.getElementById("predictedbeamcur").innerHTML = parseFloat(beamlineepics[37]).toFixed(2);
+        if(beamlineepics[32] == 1){
+            document.getElementById("ksm_status").innerHTML = "In ON/OFF sequence"
+        }else{
+            document.getElementById("ksm_status").innerHTML = "Not in ON/OFF sequence"
+        }
+        if(beamlineepics[29] == 1){
+            document.getElementById("beam_on_status").innerHTML = "Being irradiated"
+            document.getElementById("beam_on_status").style.color = 'blue';
+            document.getElementById("beam_on_status").className = 'blink';
+        }else{
+            document.getElementById("beam_on_status").innerHTML = "Not being irradiated"
+            document.getElementById("beam_on_status").style.color = 'black';
+            document.getElementById("beam_on_status").className = '';
+        }
+        var ontime = parseFloat(beamlineepics[30])*0.000888111;
+        document.getElementById("beamontime").innerHTML = ontime.toFixed(2);
+        var offtime = parseFloat(beamlineepics[31])*0.000888111;
+        document.getElementById("beamofftime").innerHTML = offtime.toFixed(2);
 
-         var nperiods = rpc[1].result.data[0];
-         var ncycles = rpc[1].result.data[1];
-	 
-	 var nperiod_max = nperiods-1;
-	 var ncycles_max = ncycles-1;
-	 document.getElementById('period_range').innerHTML = "using period range [0 - " + nperiod_max + "]";
-	 document.getElementById('cycle_range').innerHTML = "using cycle range [0 - " + ncycles_max + "]";
+        var nperiods = rpc[1].result.data[0];
+        var ncycles = rpc[1].result.data[1];
 
-         var i;
-         // Unset the unavailable, then go through and reset as appropriate.
+        var nperiod_max = nperiods-1;
+        var ncycles_max = ncycles-1;
+        document.getElementById('period_range').innerHTML = "using period range [0 - " + nperiod_max + "]";
+        document.getElementById('cycle_range').innerHTML = "using cycle range [0 - " + ncycles_max + "]";
+
+        var i;
+        // Unset the unavailable, then go through and reset as appropriate.
          // Doesn't work.. need to figure out how to do this right...
 //         $(".SeqTableClass").removeClass("UnavailableCells");
  //        for(i = nperiods+1; i <= 10; i++)  $(".periodN"+i).addClass("UnavailableCells");
    //      for(i = ncycles+1; i <= 20; i++)   $(".cycleN"+i).addClass("UnavailableCells");
 
 	 // Check the status of the sequencer frontend
-	 var prog_exist = rpc[2].result.status;
+        var prog_exist = rpc[2].result.status;
 
-	 if(prog_exist == 1){
-	    $(".sequenceCtlEl").prop('disabled', false);
-            document.getElementById('updateStatus').style.display = "none";
-	 }else{
-	    $(".sequenceCtlEl").prop('disabled', true);
-            document.getElementById('updateStatus').innerHTML = "UCNSequencer program not running.\n Cannot control PPG.";
-            document.getElementById('updateStatus').style.color = "red";
-            document.getElementById('updateStatus').style.display = "block";
-	 }
+        if(prog_exist == 1){
+            $(".sequenceCtlEl").prop('disabled', false);
+                  document.getElementById('updateStatus').style.display = "none";
+        }else{
+            $(".sequenceCtlEl").prop('disabled', true);
+                  document.getElementById('updateStatus').innerHTML = "UCNSequencer program not running.\n Cannot control PPG.";
+                  document.getElementById('updateStatus').style.color = "red";
+                  document.getElementById('updateStatus').style.display = "block";
+        }
 
-	 // Get the sequencer status
-	 var seqstatus= rpc[3].result.data[0].useq;
-	 var timediff = seqstatus[0]-seqstatus[2];
-	 document.getElementById('timeincycle').innerHTML = timediff;
-	 if(seqstatus[4] & 0x1){
-	    document.getElementById('incycle').innerHTML = 'yes';
-	 }else{
-	    document.getElementById('incycle').innerHTML = 'no';
-	 }
+        // Get the sequencer status
+        var seqstatus= rpc[3].result.data[0].useq;
+        var timediff = seqstatus[0]-seqstatus[2];
+        document.getElementById('timeincycle').innerHTML = timediff;
+        if(seqstatus[4] & 0x1){
+            document.getElementById('incycle').innerHTML = 'yes';
+        }else{
+            document.getElementById('incycle').innerHTML = 'no';
+        }
 
-	 // Get the valve states
-	 var source_state= rpc[7].result.data[0].measured;
-	 if(source_state[58] == 1){
-	    document.getElementById('iv1_state').innerHTML = 'open';
-	 }else{
-	    document.getElementById('iv1_state').innerHTML = 'closed';
-	 }
+        // Get the valve states
+        var source_state= rpc[7].result.data[0].measured;
+        if(source_state[58] == 1){
+            document.getElementById('iv1_state').innerHTML = 'open';
+        }else{
+            document.getElementById('iv1_state').innerHTML = 'closed';
+        }
 
-//	 if(source_state[143] == 1){
-//	    document.getElementById('iv2_state').innerHTML = 'open';/
-//	 }else{/
-//	    document.getElementById('iv2_state').innerHTML = 'closed';
-//	 }
+      //	 if(source_state[143] == 1){
+      //	    document.getElementById('iv2_state').innerHTML = 'open';/
+      //	 }else{/
+      //	    document.getElementById('iv2_state').innerHTML = 'closed';
+      //	 }
 
-    //     if(source_state[144] == 1){
-  //          document.getElementById('iv3_state').innerHTML = 'open';
-      //   }else{
-        //    document.getElementById('iv3_state').innerHTML = 'closed';
-        // }
+          //     if(source_state[144] == 1){
+        //          document.getElementById('iv3_state').innerHTML = 'open';
+            //   }else{
+              //    document.getElementById('iv3_state').innerHTML = 'closed';
+              // }
 
-	 // Get the valve states
-	 var run_state= rpc[5].result.data[0];
-	 if(run_state.state == 3){
-	    document.getElementById('run_state').innerHTML = 'running';
-	 }else if(run_state.state == 1){
-	    document.getElementById('run_state').innerHTML = 'stopped';
-	 }else{
-	    document.getElementById('run_state').innerHTML = 'transition';
-	 }
+        // Get the valve states
+        var run_state= rpc[5].result.data[0];
+        if(run_state.state == 3){
+            document.getElementById('run_state').innerHTML = 'running';
+        }else if(run_state.state == 1){
+            document.getElementById('run_state').innerHTML = 'stopped';
+        }else{
+            document.getElementById('run_state').innerHTML = 'transition';
+        }
 
-	 document.getElementById('run_number').innerHTML = run_state["run number"];
+        document.getElementById('run_number').innerHTML = run_state["run number"];
 
-	 // Get the TCN states
-	 var edit_on_start= rpc[6].result.data[0];
+        // Get the TCN states
+        var edit_on_start= rpc[6].result.data[0];
 
-	 document.getElementById('tcn_number').innerHTML = edit_on_start["experiment number"];
+        document.getElementById('tcn_number').innerHTML = edit_on_start["experiment number"];
 
 
-	 gStatusInflight = false; // finished async routine
+        gStatusInflight = false; // finished async routine
 
 
       }).catch(function(error) {
@@ -281,7 +281,6 @@
       }).catch(function (error) {
          alert("Problem!");
       });
-
    }
 
 
@@ -440,8 +439,10 @@
 
 <div id="mmain">
 
+  <!-- top section -->
   <section>
 
+    <!-- Beam Status -->
     <column1>
       <table class="mtable">
         <tr>
@@ -485,7 +486,7 @@
       </table>
     </column1>
 
-
+    <!-- Sequencer Status -->
     <column2>
       <table class="mtable">
         <tr>
@@ -494,12 +495,12 @@
         <tr>
           <td> In cycle: </td>
           <td> <span id="incycle"></span></td>
-	</tr>
+	      </tr>
         <tr>
           <td> Time since last cycle start (s): </td>
           <td> <span id="timeincycle"></span></td>
-	</tr>
-	<tr>
+	      </tr>
+	      <tr>
           <td style="width: 250px;">
             Cycle #
           </td>
@@ -508,17 +509,18 @@
           </td>
         </tr>
         <tr>
-	  <td>
+	        <td>
             Super Cycle #
           </td>
           <td>
             <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[7]" ></div>
           </td>
-	</tr>
+	      </tr>
 
       </table>
     </column2>
 
+    <!-- Run Status -->
     <column4>
       <table class="mtable">
         <tr>
@@ -559,14 +561,12 @@
   </section>
   <hr>
 
+  <!-- middle section -->
   <div id="full_div" style="display:block">
-
-
-
-
     <section>
+      <!-- Sequencer parameters -->
       <column3>
-	<table class="mtable">
+	      <table class="mtable">
           <tr>
             <th colspan="2" class="mtableheader">Basic Sequencer Parameters</th>
           </tr>
@@ -608,9 +608,10 @@
             <th colspan="2"> <div id="updateStatus">
             </th>
           </tr>
-	</table>
+	      </table>
       </column3>
 
+      <!-- Sequencer length settings -->
       <leftcolumn>
         <table class="mtable">
           <tr>
@@ -629,7 +630,7 @@
             <td> <div id="period_range">
             </td>
 	    <td> </td>
-	  </tr>
+	        </tr>
           <tr>
             <td>
               # Cycles in Super-Cycle:
@@ -642,7 +643,7 @@
             <td> <div id="cycle_range">
             </td>
 	    <td> </td>
-	  </tr>
+	        </tr>
           <tr>
             <td>
               <input type="button" id="zero_button" onclick="zero_seq_parameters()" value="Set all parameters to zero" ></input>
@@ -654,6 +655,7 @@
         </table>
       </leftcolumn>
 
+      <!-- Notes -->
       <rightcolumn>
         <table class="mtable">
           <tr>
@@ -694,25 +696,28 @@
       </rightcolumn>
     </section>
     <section>
+
+      <!-- Duration Table -->
       <doublecolumn>
         <div id ="DurationTable">
 
         </div>
       </doublecolumn>
 
+      <!-- Sequencer documentation -->
       <column2>
         <table class="mtable">
           <tr>
-	    <td>
-	      <a href="https://ucn.triumf.ca/ucn-source/daq/midas-daq/ucn-sequence">Sequencer Documentation</a>
-	    </td>
-	  </tr>
-	  <tr>
+	          <td>
+	            <a href="https://ucn.triumf.ca/ucn-source/daq/midas-daq/ucn-sequence">Sequencer Documentation</a>
+	          </td>
+	        </tr>
+      	  <tr>
             <td>
               <input type="button" id="create_button" onclick="create_script()" value="Save parameters as script" ></input>
             </td>
-	  </tr>
-	  <tr>
+          </tr>
+          <tr>
             <td>
               <a download="info.txt" id="downloadlink" style="display:none">Download Sequencer As Script</a>
             </td>
@@ -725,8 +730,8 @@
 
    <hr>
 
+  <!-- Online analysis tables -->
   <section>
-
     <columnana>
       <table class="mtable">
         <tr>
@@ -735,10 +740,10 @@
         <tr>
           <td class="mtableheader" > Cycle Start Time </td>
           <th colspan="10" class="mtableheader">UCN Counts Per Period</th>
-	</tr>
+	      </tr>
         <tr>
           <td> </td> <td> 0 </td> <td>1 </td> <td>2 </td> <td>3 </td> <td>4 </td> <td>5 </td> <td>6 </td> <td>7 </td> <td>8 </td> <td>9 </td>
-	</tr>
+	      </tr>
         <tr>
           <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[7]" ></div> </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[7]" ></div>  </td>
@@ -751,7 +756,7 @@
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[7]" ></div>  </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[7]" ></div>  </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[7]" ></div>  </td>
-	</tr>
+	      </tr>
         <tr>
           <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[8]" ></div> </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[8]" ></div>  </td>
@@ -764,7 +769,7 @@
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[8]" ></div>  </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[8]" ></div>  </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[8]" ></div>  </td>
-	</tr>
+	      </tr>
         <tr>
           <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[9]" ></div> </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[9]" ></div>  </td>
@@ -777,7 +782,7 @@
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[9]" ></div>  </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[9]" ></div>  </td>
           <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[9]" ></div>  </td>
-	</tr>
+	      </tr>
 
 
       </table>
@@ -838,15 +843,7 @@
 
       </table>
     </columnana>
-
-
-
-
   </section>
-
-
-
-
 
 </body>
 </html>
