@@ -101,13 +101,24 @@
       // Get beamline values; also get the current number of periods and cycles.
       mjsonrpc_send_request([
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/BeamlineEpics/Variables"]}),
-         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle","/Equipment/UCNSequencer2018/Settings/numCyclesInSuper"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle","/Equipment/UCNSequencer2018/Settings/numCyclesInSuper","/Equipment/UCNSequencer2018/Settings/enable"]}),
          mjsonrpc_make_request("cm_exist",{"name":"fe2018sequencer"}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/SourceEpics/Variables"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Runinfo"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Experiment/Edit On Start"]}),
          mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCN2EpPha5Oth/Variables"]}),
+         mjsonrpc_make_request("db_get_values",{"paths":["/Equipment/UCNSequencer2018/Settings/DurationTimePeriod0",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod1",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod2",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod3",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod4",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod5",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod6",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod7",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod8",
+                                                         "/Equipment/UCNSequencer2018/Settings/DurationTimePeriod9",
+                                                        ]}),
       ]).then(function (rpc) {
 
         var beamlineepics = rpc[0].result.data[0].measured;
@@ -176,8 +187,42 @@
         document.getElementById('timeincycle').innerHTML = timediff;
         if(seqstatus[4] & 0x1){
             document.getElementById('incycle').innerHTML = 'yes';
+            var current_cycle = parseInt(seqstatus[6]);
         }else{
             document.getElementById('incycle').innerHTML = 'no';
+            var current_cycle = parseInt(seqstatus[6]) - 1;
+        }
+
+        // set time left in cycle
+        var period_durations = rpc[8].result.data;
+        var cycleduration = 0;
+
+        for(let i=0; i<nperiods; i++){
+          cycleduration += period_durations[i][current_cycle];
+        }
+        
+        var timeleft = cycleduration - timediff; 
+        if(timeleft > 0){
+            document.getElementById('timeleftincycle').innerHTML = timeleft + " s";    
+        }else{
+            document.getElementById('timeleftincycle').innerHTML = "";
+        }
+        
+
+        // set total supercycle duration
+        var supercycledur = (ontime + offtime) * ncycles;
+        document.getElementById('supercycledur').innerHTML = Math.floor(supercycledur/3600).toFixed(0) + 'h ' +
+                                                             Math.floor(supercycledur/60 % 60).toFixed(0) + 'min ' +
+                                                             (supercycledur % 60).toFixed(0) + 's';
+
+        // get time left until supercycle end
+        var scycle_left = supercycledur - (ontime + offtime) * current_cycle - timediff;
+        if(scycle_left > 0){    
+            document.getElementById('timeleftinsupercycle').innerHTML = Math.floor(scycle_left/3600).toFixed(0) + 'h ' +
+                                                                        Math.floor(scycle_left/60 % 60).toFixed(0) + 'min ' +
+                                                                                  (scycle_left % 60).toFixed(0) + 's';
+        }else{
+            document.getElementById('timeleftinsupercycle').innerHTML = "";
         }
 
         // Get the valve states
@@ -216,6 +261,46 @@
         var edit_on_start= rpc[6].result.data[0];
 
         document.getElementById('tcn_number').innerHTML = edit_on_start["experiment number"];
+
+        // highlight columns which will be executed based on cycle length
+        for(let i=0; i<20; i++){
+          if(i < ncycles){
+            document.getElementById('cyclecol'+i).style.background = "#E6E8A2";
+          }
+          else{
+            document.getElementById('cyclecol'+i).style.background = "";
+          }
+        }
+
+        // highlight rows which will be executed based on period length
+        for(let i=0; i<10; i++){
+          if(i < nperiods){
+            document.getElementById('periodrow'+i).style.background = "#BDE8F0";
+          }
+          else{
+            document.getElementById('periodrow'+i).style.background = "";
+          }
+        }
+
+        // make fields non-editable when seq is not enabled
+        var is_enabled = rpc[1].result.data[2];
+        var editable_odb = document.getElementsByClassName("odb_editable");
+        var valvecheckbox = document.getElementsByClassName("valvecheckbox");
+        for(let i=0; i<editable_odb.length; i++){
+          if(is_enabled){
+            editable_odb[i].setAttribute("data-odb-editable", "0");
+          } else {
+            editable_odb[i].setAttribute("data-odb-editable", "1");
+          }
+        }
+
+        for(let i=0; i<valvecheckbox.length; i++){
+          if(is_enabled){
+            valvecheckbox[i].disabled = true;
+          } else {
+            valvecheckbox[i].disabled = false;
+          }
+        }
 
 
         gStatusInflight = false; // finished async routine
@@ -394,28 +479,33 @@
       DurationTableText +='<th colspan="8" class="mtableheader">Valve State</th>';
       DurationTableText +='<tr> <td> </td> <td colspan="20" style="text-align: center;">Cycles</td> <td colspan="8" style="text-align: center;">Valve #</td></tr><tr><td></td>';
       var i, j;
+
+      // column headers (cycles)
       for(i = 0; i < 20; i++){
          var cycle = i;
-         DurationTableText += '<td style="width: 30px;text-align: center;"> ' + cycle +' </td>';
+         DurationTableText += '<td style="width: 30px;text-align: center;" id="cyclecol'+cycle+'"> ' + cycle +' </td>';
       }
+
+      // column headers (valves)
       for(i = 0; i < 8; i++){
          var valve = i + 1;
          DurationTableText += '<td style="width: 30px;text-align: center;"> ' + valve +' </td>';
       }
       DurationTableText += '</tr>'
 
+      // table rows
       for(i = 0; i < 10; i++){
          var period = i;
          DurationTableText += '<tr>'
-         DurationTableText += '<td style="width: 100px;"> Period ' + period + '</td>';
+         DurationTableText += '<td style="width: 100px;" id="periodrow'+period+'"> Period ' + period + '</td>';
          for(j = 0; j < 20; j++){
             var cycle = j;
-            DurationTableText += "<td style=''width: 35px; text-align: center;'> <div class='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
+            DurationTableText += "<td style=''width: 35px; text-align: center;'> <div class='odb_editable' id='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
          }
 
          for(j = 0; j < 8; j++){
             var valve = j+1;
-            DurationTableText += "<td style=''width: 35px; text-align: center'> <input type='checkbox' name='modbcheckbox' data-odb-path='/Equipment/UCNSequencer2018/Settings/Valve"+valve+"State["+i+"]'></input></td>";
+            DurationTableText += "<td style=''width: 35px; text-align: center'> <input class='valvecheckbox' type='checkbox' name='modbcheckbox' data-odb-path='/Equipment/UCNSequencer2018/Settings/Valve"+valve+"State["+i+"]'></input></td>";
          }
          DurationTableText += '</tr>'
       }
@@ -497,10 +587,22 @@
           <td> <span id="incycle"></span></td>
 	      </tr>
         <tr>
-          <td> Time since last cycle start (s): </td>
-          <td> <span id="timeincycle"></span></td>
+          <td> Time since last cycle start: </td>
+          <td> <span id="timeincycle"></span> s</td>
 	      </tr>
 	      <tr>
+          <td> Time until cycle end: </td>
+          <td> <span id="timeleftincycle"></span></td>
+	      </tr>
+	      <tr>
+          <td> Supercycle duration: </td>
+          <td> <span id="supercycledur"></span></td>
+	      </tr>
+	      <tr>
+          <td> Time until supercycle end: </td>
+          <td> <span id="timeleftinsupercycle"></span></td>
+	      </tr>
+        <tr>
           <td style="width: 250px;">
             Cycle #
           </td>
@@ -510,7 +612,7 @@
         </tr>
         <tr>
 	        <td>
-            Super Cycle #
+            Supercycle #
           </td>
           <td>
             <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[7]" ></div>
@@ -563,6 +665,8 @@
 
   <!-- middle section -->
   <div id="full_div" style="display:block">
+
+    <!-- upper middle section -->
     <section>
       <!-- Sequencer parameters -->
       <column3>
@@ -621,22 +725,27 @@
             <td style="width: 250px;">
               # Periods in Cycle:
             </td>
-            <td style="width: 80px;">
-              <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle" data-odb-editable="1" ></div>
+            <td style="width: 80px;" bgcolor="BDE8F0">
+              <div
+                class="odb_editable"
+                name="modbvalue"
+                data-odb-path="/Equipment/UCNSequencer2018/Settings/numberPeriodsInCycle"
+                data-odb-editable="1"
+              ></div>
             </td>
           </tr>
 
           <tr>
             <td> <div id="period_range">
             </td>
-	    <td> </td>
+	          <td> </td>
 	        </tr>
           <tr>
             <td>
-              # Cycles in Super-Cycle:
+              # Cycles in Supercycle:
             </td>
-            <td>
-              <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div>
+            <td bgcolor="E6E8A2">
+              <div class="odb_editable" name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Settings/numCyclesInSuper" data-odb-editable="1" ></div>
             </td>
           </tr>
           <tr>
@@ -695,6 +804,8 @@
 
       </rightcolumn>
     </section>
+
+    <!-- lower middle section -->
     <section>
 
       <!-- Duration Table -->
