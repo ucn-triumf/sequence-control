@@ -265,7 +265,7 @@ void setVariables(){
     if(total_time_cycle != 0)
       printf("Total time for cycle %i is %f\n",j+1,total_time_cycle);
 
-    if(1 &&  total_time_cycle > beam_on_epics + beam_off_epics - 10){
+    if(config_global.ExternalTrigger &&  total_time_cycle > beam_on_epics + beam_off_epics - 10){
       cm_msg(MERROR,"Settings","The total time for cycle %i of %.2f seconds is longer than the kicker cycle time of %.2f (with 10sec margin); disabling sequencer.\n",j+1,total_time_cycle,beam_on_epics + beam_off_epics);
       gEnabled = false;
       return;      
