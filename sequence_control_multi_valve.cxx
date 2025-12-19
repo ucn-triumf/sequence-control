@@ -136,6 +136,7 @@ MVME_INTERFACE *myvme = 0;
 DWORD PPG_BASE = 0x00c00000;
 
 HNDLE settings_handle_global_;              //!< Handle for the global settings record
+HNDLE control_handle_global_;              //!< Handle for the global settings record
 
 extern HNDLE hDB;
 HNDLE h;
@@ -174,6 +175,7 @@ struct SEQUENCE_SETTINGS {
   int Valve6State[MaxPeriods];
   int Valve7State[MaxPeriods];
   int Valve8State[MaxPeriods];
+  bool ExternalTrigger;
 
 } static config_global;
 
@@ -263,7 +265,7 @@ void setVariables(){
     if(total_time_cycle != 0)
       printf("Total time for cycle %i is %f\n",j+1,total_time_cycle);
 
-    if(total_time_cycle > beam_on_epics + beam_off_epics - 10){
+    if(1 &&  total_time_cycle > beam_on_epics + beam_off_epics - 10){
       cm_msg(MERROR,"Settings","The total time for cycle %i of %.2f seconds is longer than the kicker cycle time of %.2f (with 10sec margin); disabling sequencer.\n",j+1,total_time_cycle,beam_on_epics + beam_off_epics);
       gEnabled = false;
       return;      
@@ -380,10 +382,13 @@ INT set_ppg_sequence(){
   // triggered when we set to external trigger, then there will be a blank sequence to execute.
   // If we don't do this, then we will restart the old sequence whenever we change parameters.
   set_command(0,0,0,0,0);  
-  
-  // Use the external trigger to inititate the sequence
-  mvme_write_value(myvme, PPG_BASE , 0x4);
 
+  if(config_global.ExternalTrigger){  
+    // Use the external trigger to inititate the sequence
+    mvme_write_value(myvme, PPG_BASE , 0x4);
+
+
+  }
 
   // Reminder: these are PPG instructions types;  
   // 0 - Halt
@@ -452,8 +457,14 @@ INT set_ppg_sequence(){
   gettimeofday(&now,NULL);
   
   if(now.tv_sec - lastPrint.tv_sec > 5){
-    cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i.",
-	   config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);     
+    if(config_global.ExternalTrigger){    
+      cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i. External hardware trigger.",
+	     config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);    
+    }else{
+      cm_msg(MINFO,"Settings","Setup new cycle: %i periods (%i non-zero): period times = %s sec: cycle/super-cycle index = %i/%i. Internal Software trigger.",
+	     config_global.numberPeriodsInCycle,validPeriods,times.c_str(),gCycleIndex,gSuperCycleIndex);    
+
+    }
   }
   lastPrint = now;
 
@@ -471,6 +482,44 @@ void callback_func(INT h, INT hseq, void *info)
   printf("Callback!\n");
   setVariables();
   set_ppg_sequence();
+
+}
+
+
+void callback_initiate(INT h, INT hseq, void *info){
+
+  BOOL Initiate;
+  int size = sizeof(Initiate);
+  db_get_data_index(hDB, control_handle_global_, &Initiate, &size, 0, TID_BOOL);
+  
+  // Do nothing if variable is set to false
+  if (!Initiate){
+    //printf("InitiateCycle = False; doing nothing\n");
+    return;     
+  }
+  
+  // Now grab the full copy of the ODB message...                                                        
+  size = sizeof(SEQUENCE_SETTINGS);
+  int status = db_get_record(hDB, settings_handle_global_, &config_global, &size, 0);
+  if (status != DB_SUCCESS){
+    cm_msg(MERROR,"SetBoardRecord","Couldn't get record. Return code: %d", status);
+    return ;
+  }
+  
+  if(config_global.ExternalTrigger){
+    cm_msg(MERROR,"SetBoardRecord","Sequencer ExternalTrigger=True; can't initiate software trigger");
+  }else{    
+    printf("Callback to initiate PPG cycle!\n");
+    mvme_write_value(myvme, PPG_BASE , 0x1);
+  }
+
+  // clear the bits after writing command (this triggers another demand but no action)           
+  Initiate = FALSE;
+  size = sizeof(Initiate);
+  db_set_data(hDB, control_handle_global_, &Initiate,
+              size, 1, TID_BOOL);
+
+
 
 }
 
@@ -503,6 +552,20 @@ INT frontend_init()
     cm_msg(MERROR,"SetBoardRecord","Couldn't create hotlink . Return code: %d\n", status);
     return status;
   }
+
+  // Setup hotlink for initiate control
+  status = db_find_key (hDB, 0, "/Equipment/UCNSequencer2018/Control/InitiateCycle", &control_handle_global_);
+  if (status != DB_SUCCESS) cm_msg(MINFO,"SetBoardRecord","Key not found. Return code: %d",  status);
+  
+  size = sizeof(BOOL);
+  BOOL InitiateCycle = FALSE;
+  //setup hotlink to InitiateCycle variable
+  status = db_open_record(hDB, control_handle_global_, &InitiateCycle, size, MODE_READ, callback_initiate, NULL);
+  if (status != DB_SUCCESS){
+    cm_msg(MERROR,"SetBoardRecord","Couldn't create hotlink . Return code: %d\n", status);
+    return status;
+  }
+
 
   // Write to test registers
   if(1){
@@ -653,7 +716,7 @@ struct timeval cycle_start_time;
 INT read_event(char *pevent, INT off)
 {
 
-  //  printf("read event\n");
+  //printf("read event\n");
   /* init bank structure */
   bk_init32(pevent);
 
