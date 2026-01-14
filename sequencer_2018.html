@@ -510,18 +510,56 @@
          DurationTableText += '</tr>'
       }
 
+      // sums
+      DurationTableText += '<tr>'
+      DurationTableText += '<td style="width: 100px;" id="periodsumrow'+period+'"> Cycle Duration </td>';
+      for(j = 0; j < 20; j++){
+            var cycle = j;
+            DurationTableText += `<td style=''width: 35px; text-align: center;' id='cyclesum_${cycle}'> </td>`
+         }
+      DurationTableText += '</tr>'
       DurationTableText += '</table>';
 
       document.getElementById("DurationTable").innerHTML = DurationTableText;
-
    }
+
+  function update_cycleduration(){
+    // update the cycle duration row
+
+    // get odb data
+    let paths = [];
+    for(let periodn=0; periodn<10; periodn++){
+      paths.push(`/Equipment/UCNSequencer2018/Settings/DurationTimePeriod${periodn}`);
+    }
+    mjsonrpc_db_get_values(paths).then(function(rpc){
+
+      // get result
+      let data = rpc.result.data;
+
+      // set values
+      for(let cyclen=0; cyclen<20; cyclen++){
+        let cell = document.getElementById(`cyclesum_${cyclen}`);
+        let sum = 0;
+
+        // add up the timings
+        for(let periodn=0; periodn<10; periodn++){
+          sum += data[periodn][cyclen];
+        }
+
+        // set the cell value
+        cell.innerText = sum;
+      }      
+    });
+
+  }
+
    </script>
 
 </head>
 
 
 
-<body class="mcss" onload="set_tables();mhttpd_init('Sequencer2018');setInterval(statusPeriodicUpdate,3000);statusPeriodicUpdate()">
+<body class="mcss" onload="set_tables();mhttpd_init('Sequencer2018');setInterval(statusPeriodicUpdate,3000);statusPeriodicUpdate();setInterval(update_cycleduration,1000);update_cycleduration();">
 
 <!-- header and side navigation will be filled in mhttpd_start -->
 <div id="mheader"></div>
