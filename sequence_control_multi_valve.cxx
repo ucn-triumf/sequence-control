@@ -254,18 +254,17 @@ void setVariables(){
 
       double dtime = config_global.DurationTimePeriod[i][j];
       if(dtime < 0.0 || dtime > 4000){
-	cm_msg(MERROR,"Settings","The requested DurationTime of %.2f for Period%i[%i] is not valid; must be in the range [0,4000s]; disabling sequencer.\n",dtime,i+1,j);
-	gEnabled = false;
-	return;	
+        cm_msg(MERROR,"Settings","The requested DurationTime of %.2f for Period%i[%i] is not valid; must be in the range [0,4000s]; disabling sequencer.\n",dtime,i+1,j);
+        gEnabled = false;
+        return;	
       }
       total_time_cycle += dtime;
-
     }
 
     if(total_time_cycle != 0)
       printf("Total time for cycle %i is %f\n",j+1,total_time_cycle);
 
-    if(config_global.ExternalTrigger &&  total_time_cycle > beam_on_epics + beam_off_epics - 10){
+    if(0 && config_global.ExternalTrigger &&  total_time_cycle > beam_on_epics + beam_off_epics - 10){
       cm_msg(MERROR,"Settings","The total time for cycle %i of %.2f seconds is longer than the kicker cycle time of %.2f (with 10sec margin); disabling sequencer.\n",j+1,total_time_cycle,beam_on_epics + beam_off_epics);
       gEnabled = false;
       return;      
@@ -797,7 +796,7 @@ INT read_event(char *pevent, INT off)
     *pdata++ = config_global.infiniteCycles;
     for(int i = 0; i < MaxPeriods; i++){
       for(int j = 0; j < MaxCycles; j++){
-	*pdata++ = config_global.DurationTimePeriod[i][j];
+	      *pdata++ = config_global.DurationTimePeriod[i][j];
       }
     }
     for(int i = 0; i < MaxPeriods; i++){
@@ -811,7 +810,6 @@ INT read_event(char *pevent, INT off)
       *pdata++ = config_global.Valve8State[i];
     }
     int size3 = bk_close(pevent, pdata);    
-    
   }
 
   gFirstEvent = 0;
