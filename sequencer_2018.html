@@ -282,15 +282,38 @@
           }
         }
 
-        // make fields non-editable when seq is not enabled
+        // get current period
+        if(document.getElementById('incycle').innerHTML == 'yes'){
+          let time_elapsed = parseInt(document.getElementById('timeincycle').innerText);
+          var current_period = 0;
+          let cum_period_dur = 0; 
+          for(let i=0; i<10; i++){
+            cum_period_dur += parseInt(document.getElementById(`SeqTableClass periodN${i} cycleN${current_cycle}`).innerText)
+            if(time_elapsed <= cum_period_dur){
+              break;
+            }
+            current_period += 1;
+          }
+        }
+
+        // make fields non-editable when seq is not enabled and color of active cell
         var is_enabled = rpc[1].result.data[2];
-        var editable_odb = document.getElementsByClassName("odb_editable");
+        var editable_odb = document.getElementsByName("seqtablecell");
         var valvecheckbox = document.getElementsByClassName("valvecheckbox");
         for(let i=0; i<editable_odb.length; i++){
+
+          // enable/disable
           if(is_enabled){
             editable_odb[i].setAttribute("data-odb-editable", "0");
           } else {
             editable_odb[i].setAttribute("data-odb-editable", "1");
+          }
+
+          // set color if active period/cycle
+          if(document.getElementById('incycle').innerHTML == 'yes' && editable_odb[i].id == `SeqTableClass periodN${current_period} cycleN${current_cycle}`){
+            editable_odb[i].parentElement.style.backgroundColor = '#BFF2C1';
+          } else {
+            editable_odb[i].parentElement.style.backgroundColor = '';
           }
         }
 
@@ -301,7 +324,6 @@
             valvecheckbox[i].disabled = false;
           }
         }
-
 
         gStatusInflight = false; // finished async routine
 
@@ -500,7 +522,7 @@
          DurationTableText += '<td style="width: 100px;" id="periodrow'+period+'"> Period ' + period + '</td>';
          for(j = 0; j < 20; j++){
             var cycle = j;
-            DurationTableText += "<td style=''width: 35px; text-align: center;'> <div class='odb_editable' id='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='modbvalue' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
+            DurationTableText += "<td style=''width: 35px; text-align: center;'> <div class='modbvalue' id='SeqTableClass periodN"+period+" cycleN"+cycle+"' name='seqtablecell' data-odb-path='/Equipment/UCNSequencer2018/Settings/DurationTimePeriod" + period + "["+j+"]' data-odb-editable='1' ></div> </td>"
          }
 
          for(j = 0; j < 8; j++){
@@ -645,7 +667,7 @@
             Cycle #
           </td>
           <td style="width: 200px;">
-            <div  name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[6]" ></div>
+            <div id="current_cycleN" name="modbvalue" data-odb-path="/Equipment/UCNSequencer2018/Variables/USEQ[6]" ></div>
           </td>
         </tr>
         <tr>
