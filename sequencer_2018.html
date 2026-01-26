@@ -8,6 +8,7 @@
    <script src="midas.js"></script>
    <script src="mhttpd.js"></script>
    <script src="sequencer_functions.js"></script>
+   <script src="analyzer/analyzer.js"></script>
    <title>Sequencer</title>
    <style>
 
@@ -188,9 +189,11 @@
         if(seqstatus[4] & 0x1){
             document.getElementById('incycle').innerHTML = 'yes';
             var current_cycle = parseInt(seqstatus[6]);
+            var current_supercycle = parseInt(seqstatus[7]);
         }else{
             document.getElementById('incycle').innerHTML = 'no';
             var current_cycle = parseInt(seqstatus[6]) - 1;
+            var current_supercycle = parseInt(seqstatus[7]) - 1;
         }
 
         // set time left in cycle
@@ -325,6 +328,33 @@
           }
         }
 
+        // set cycle numbers in counts tables
+        for(let detector of ['Li6', 'He3']){
+          let scycle = current_supercycle;
+          for(let i=0; i<10; i++){
+            
+            let cell = document.getElementById(`cycle_id_${detector}_row${i}`);
+
+            // don't do prev supercycles
+            if(scycle <0){
+              cell.innerText = '';
+              continue;
+            }
+
+            // set number
+            let cycle_guess = current_cycle - ((i+1)%ncycles);
+            if(cycle_guess < 0){
+              cycle_guess += ncycles;
+            }
+            cell.innerText = cycle_guess;
+            
+            // prev supercycle
+            if(cycle_guess == 0){
+              scycle -= 1;
+            }
+          }
+        }
+
         gStatusInflight = false; // finished async routine
 
 
@@ -352,7 +382,6 @@
 
    }
 
-
    function zero_settings(){
 
       var zero_paths = [];
@@ -374,8 +403,6 @@
 
    }
 
-
-
    function zero_seq_parameters(){
 
       // Make the main JSON-RPC request
@@ -389,7 +416,6 @@
          alert("Problem!");
       });
    }
-
 
    function load_simple(){
       var rad_time  = document.getElementById("irradiation_time").value;
@@ -436,7 +462,6 @@
       });
 
    }
-
 
    function load_lifetime(){
       var rad_time  = document.getElementById("irradiation_time").value;
@@ -492,7 +517,6 @@
 
    }
 
-
    function set_tables(){
 
       // Period Duration Time Table
@@ -545,7 +569,7 @@
       document.getElementById("DurationTable").innerHTML = DurationTableText;
    }
 
-  function update_cycleduration(){
+   function update_cycleduration(){
     // update the cycle duration row
 
     // get odb data
@@ -575,13 +599,21 @@
 
   }
 
+   function setup(){
+      set_tables();
+      init_period_table('Li6');
+      init_period_table('He3');
+      update_cycleduration();
+      statusPeriodicUpdate();
+      setInterval(statusPeriodicUpdate,3000);
+      setInterval(update_cycleduration,1000);
+   }
+
    </script>
 
 </head>
 
-
-
-<body class="mcss" onload="set_tables();mhttpd_init('Sequencer2018');setInterval(statusPeriodicUpdate,3000);statusPeriodicUpdate();setInterval(update_cycleduration,1000);update_cycleduration();">
+<body class="mcss" onload="setup();mhttpd_init('Sequencer2018');">
 
 <!-- header and side navigation will be filled in mhttpd_start -->
 <div id="mheader"></div>
@@ -914,114 +946,21 @@
     <columnana>
       <table class="mtable">
         <tr>
-          <th colspan="11" class="mtableheader">Li-6 Online Analysis Per Period</th>
+          <th colspan="12" class="mtableheader">Li-6 Online Analysis Per Period</th>
         </tr>
-        <tr>
-          <td class="mtableheader" > Cycle Start Time </td>
-          <th colspan="10" class="mtableheader">UCN Counts Per Period</th>
-	      </tr>
-        <tr>
-          <td> </td> <td> 0 </td> <td>1 </td> <td>2 </td> <td>3 </td> <td>4 </td> <td>5 </td> <td>6 </td> <td>7 </td> <td>8 </td> <td>9 </td>
-	      </tr>
-        <tr>
-          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[7]" ></div> </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod1[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod2[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod3[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod4[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod5[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod6[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[7]" ></div>  </td>
-	      </tr>
-        <tr>
-          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[8]" ></div> </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod1[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod2[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod3[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod4[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod5[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod6[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[8]" ></div>  </td>
-	      </tr>
-        <tr>
-          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/CycleStartTimes[9]" ></div> </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod0[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod1[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod2[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod3[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod4[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod5[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod6[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod7[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod8[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/Li6/UCNHitsPerCyclePeriod9[9]" ></div>  </td>
-	      </tr>
-
-
+        <tbody id="Li6_period_table"></tbody>
       </table>
     </columnana>
 
     <columnana>
       <table class="mtable">
         <tr>
-          <th colspan="11" class="mtableheader">He-3 DET1 Online Analysis Per Period</th>
+          <th colspan="12" class="mtableheader">He-3 DET1 Online Analysis Per Period</th>
         </tr>
-        <tr>
-          <td class="mtableheader" > Cycle Start Time </td>
-          <th colspan="10" class="mtableheader">UCN Counts Per Period</th>
-	</tr>
-         <tr>
-           <td> </td> <td> 0 </td> <td>1 </td> <td>2 </td> <td>3 </td> <td>4 </td> <td>5 </td> <td>6 </td> <td>7 </td> <td>8 </td> <td>9 </td>
-	</tr>
-        <tr>
-          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/CycleStartTimes[7]" ></div> </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod0[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod1[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod2[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod3[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod4[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod5[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod6[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod7[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod8[7]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod9[7]" ></div>  </td>
-	</tr>
-        <tr>
-          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/CycleStartTimes[8]" ></div> </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod0[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod1[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod2[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod3[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod4[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod5[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod6[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod7[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod8[8]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod9[8]" ></div>  </td>
-	</tr>
-        <tr>
-          <td style="width: 200px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/CycleStartTimes[9]" ></div> </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod0[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod1[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod2[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod3[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod4[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod5[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod6[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod7[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod8[9]" ></div>  </td>
-          <td style="width: 60px;"> <div  name="modbvalue" data-odb-path="/Analyzer/He3/UCNHitsPerCyclePeriod9[9]" ></div>  </td>
-	</tr>
-
-
+        <tbody id="He3_period_table"></tbody>
       </table>
     </columnana>
+
   </section>
 
 </body>
