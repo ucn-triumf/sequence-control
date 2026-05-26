@@ -2,7 +2,6 @@
 # Derek Fujimoto
 # May 2026
 
-import midas
 import ctypes
 import os
 
@@ -23,7 +22,7 @@ class VME(object):
     VME crate to read/write
     """
 
-    def __init__(self, ppg_base=0x00c00000):
+    def __init__(self):
         
         # load library
         try:
@@ -35,7 +34,6 @@ class VME(object):
         self.lib = ctypes.CDLL(os.path.join(path, 'build', 'libvme.so'))
 
         # set inputs
-        self.ppg_base = ppg_base
         self.myvme = mvme_interface()
 
     def open(self):
