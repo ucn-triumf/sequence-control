@@ -2,7 +2,6 @@
 # Derek Fujimoto
 # May 2026
 
-import midas
 import ctypes
 import os
 
