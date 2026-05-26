@@ -1,0 +1,48 @@
+cmake_minimum_required(VERSION 3.15)
+project(sequence_control CXX)
+
+# ── Resolve environment variables ─────────────────────────────────────────────
+# CMake reads them from the shell environment with $ENV{}.    
+set(MIDASSYS $ENV{MIDASSYS})
+set(INC_DIR ${MIDASSYS}/include)   # MIDAS headers
+set(DRV_DIR ${MIDASSYS}/drivers)   # MIDAS driver headers
+set(LIB_DIR ${MIDASSYS}/lib)       # MIDAS pre-built libs / objects
+
+# ── Imported targets for pre-built MIDAS components ───────────────────────────
+# An IMPORTED STATIC library tells CMake "this .a file already exists on disk;
+# I did not build it, just use it when linking."
+add_library(midas STATIC IMPORTED)
+set_target_properties(midas PROPERTIES
+    IMPORTED_LOCATION ${LIB_DIR}/libmidas.a
+)
+
+# ── gefvme object library ─────────────────────────────────────────────────────
+# The Makefile compiles gefvme.c with a specific, minimal set of flags — so it 
+# gets its own CMake OBJECT library. An OBJECT library compiles sources but 
+ #does not archive them; the resulting .o files are later merged into the final 
+ # executable via $<TARGET_OBJECTS:...>.
+add_library(gefvme OBJECT
+    ${MIDASSYS}/drivers/vme/vmic/gefvme.c
+)
+target_compile_options(gefvme PRIVATE
+    -O2 -fPIC -g -Wall -Wuninitialized
+)
+target_include_directories(gefvme PRIVATE ${INC_DIR})
+
+# ── Shared library for ctypes ─────────────────────────────────────────────────
+# SHARED produces a .so on Linux. ctypes.CDLL("./libvme.so") can then call
+# any function from gefvme.c (mvme_open, mvme_set_am, mvme_set_dmode,
+# mvme_read_value, mvme_write_value, etc.) directly — they are plain C and
+# already have C linkage with no wrapper needed.
+#
+# mfe.o is intentionally omitted: it contains MIDAS's main() and frontend
+# event loop. A shared library has no entry point, so mfe.o would cause
+# duplicate-symbol errors. libmidas.a still provides the full MIDAS API.
+add_library(vme SHARED
+    $<TARGET_OBJECTS:gefvme>
+)
+
+target_link_libraries(vme PRIVATE
+    midas
+    -lm -lz -lutil -lnsl -lpthread -lrt
+)
