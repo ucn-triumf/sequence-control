@@ -102,37 +102,45 @@ class VME(object):
         except NameError:
             path = '.'
         
-        path = os.path.basename(path)
+        path = os.path.dirname(path)
         self.lib = ctypes.CDLL(os.path.join(path, 'build', 'libvme.so'))
 
-        # set inputs
-        self.myvme = mvme_interface()
+        # set return types
+        self.lib.mvme_read_value.restype = ctypes.c_uint
 
-    def open(self):
+        #  pointer-to-pointer
+        self._vme_ptr = ctypes.POINTER(mvme_interface)()
+
+    def open(self, idx:int=0):
         """Open connection - kills python on fail with msg to stdout"""
-        self.lib.mvme_open(ctypes.pointer(self.myvme), 0)
+        self.lib.mvme_open(ctypes.byref(self._vme_ptr), 
+                           ctypes.c_int(idx))
+
+    def close(self):
+        """Close connection"""
+        self.lib.mvme_close(self._vme_ptr)
 
     def set_address_mod(self, am:int):
         """Set address modifier"""
-        self.lib.mvme_set_am(ctypes.pointer(self.myvme), 
+        self.lib.mvme_set_am(self._vme_ptr, 
                              ctypes.c_int(am))
 
     def set_data_mode(self, dmode:int):
         """Set data mode"""
-        self.lib.mvme_set_dmode(ctypes.pointer(self.myvme), 
+        self.lib.mvme_set_dmode(self._vme_ptr, 
                                 ctypes.c_int(dmode))
     
     def get_address_mod(self):
         """Get address modifier"""
         x = ctypes.c_int()
-        self.lib.mvme_get_am(ctypes.pointer(self.myvme),
+        self.lib.mvme_get_am(self._vme_ptr,
                              ctypes.pointer(x))
         return x.value
     
     def get_data_mode(self):
         """Get data mode"""
         x = ctypes.c_int()
-        self.lib.mvme_get_dmode(ctypes.pointer(self.myvme),
+        self.lib.mvme_get_dmode(self._vme_ptr,
                                 ctypes.pointer(x))
         return x.value
 
@@ -143,8 +151,8 @@ class VME(object):
             address (unsigned int)
             value (unsigned int)
         """
-        return int(self.lib.mvme_read_value(ctypes.pointer(self.myvme), 
-                                            ctypes.c_uint(address)))
+        return int(self.lib.mvme_read_value(self._vme_ptr, 
+                                            ctypes.c_uint16(address)))
 
     def write_value(self, address:int, value:int):
         """Write single value to VME bus
@@ -153,6 +161,6 @@ class VME(object):
             address (unsigned int)
             value (unsigned int)
         """
-        return int(self.lib.mvme_read_value(ctypes.pointer(self.myvme), 
-                                            ctypes.c_uint(address),
-                                            ctypes.c_uint(value)))
+        return int(self.lib.mvme_write_value(self._vme_ptr, 
+                                             ctypes.c_uint16(address),
+                                             ctypes.c_uint(value)))
