@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(sequence_control CXX)
+project(vme C CXX)
 
 # ── Resolve environment variables ─────────────────────────────────────────────
 # CMake reads them from the shell environment with $ENV{}.    
@@ -16,19 +16,6 @@ set_target_properties(midas PROPERTIES
     IMPORTED_LOCATION ${LIB_DIR}/libmidas.a
 )
 
-# ── gefvme object library ─────────────────────────────────────────────────────
-# The Makefile compiles gefvme.c with a specific, minimal set of flags — so it 
-# gets its own CMake OBJECT library. An OBJECT library compiles sources but 
- #does not archive them; the resulting .o files are later merged into the final 
- # executable via $<TARGET_OBJECTS:...>.
-add_library(gefvme OBJECT
-    ${MIDASSYS}/drivers/vme/vmic/gefvme.c
-)
-target_compile_options(gefvme PRIVATE
-    -O2 -fPIC -g -Wall -Wuninitialized
-)
-target_include_directories(gefvme PRIVATE ${INC_DIR})
-
 # ── Shared library for ctypes ─────────────────────────────────────────────────
 # SHARED produces a .so on Linux. ctypes.CDLL("./libvme.so") can then call
 # any function from gefvme.c (mvme_open, mvme_set_am, mvme_set_dmode,
@@ -39,9 +26,10 @@ target_include_directories(gefvme PRIVATE ${INC_DIR})
 # event loop. A shared library has no entry point, so mfe.o would cause
 # duplicate-symbol errors. libmidas.a still provides the full MIDAS API.
 add_library(vme SHARED
-    $<TARGET_OBJECTS:gefvme>
+    ${MIDASSYS}/drivers/vme/vmic/gefvme.c
 )
-
+target_compile_options(vme PRIVATE -O2 -fPIC -g -Wall -Wuninitialized)
+target_include_directories(vme PRIVATE ${INC_DIR})
 target_link_libraries(vme PRIVATE
     midas
     -lm -lz -lutil -lnsl -lpthread -lrt
