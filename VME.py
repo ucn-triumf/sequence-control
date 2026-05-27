@@ -34,13 +34,13 @@ MVME_ACCESS_ERROR   = 7
 
 # data modes
 
-MVME_DMODE_D8       =   1   # D8
-MVME_DMODE_D16      =   2   # D16
-MVME_DMODE_D32      =   3   # D32
-MVME_DMODE_D64      =   4   # D64
-MVME_DMODE_RAMD16   =   5   # RAM memory of VME adapter
-MVME_DMODE_RAMD32   =   6   # RAM memory of VME adapter
-MVME_DMODE_LM       =   7   # local memory mapped to VME 
+MVME_DMODE_D8       = 1   # D8
+MVME_DMODE_D16      = 2   # D16
+MVME_DMODE_D32      = 3   # D32
+MVME_DMODE_D64      = 4   # D64
+MVME_DMODE_RAMD16   = 5   # RAM memory of VME adapter
+MVME_DMODE_RAMD32   = 6   # RAM memory of VME adapter
+MVME_DMODE_LM       = 7   # local memory mapped to VME 
 
 MVME_DMODE_DEFAULT  = MVME_DMODE_D32
 
