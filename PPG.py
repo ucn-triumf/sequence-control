@@ -28,13 +28,13 @@ class PPG(object):
         self.vme.set_data_mode(VME.MVME_DMODE_D32)
         assert self.vme.get_data_mode() == VME.MVME_DMODE_D32
 
-    def _set_command(self, idx:int, mask_set=None, mask_clear=None, delay_10ns=None, instr=None):
+    def _set_command(self, idx:int, mask_high=None, mask_low=None, delay_10ns=None, instr=None):
         """Every instruction encodes four things, spread across four 32-bit registers
         
         Args:
             idx (int):          instruction slot index (address)
-            mask_set (int):     bits 0-31, mask indicating which output channels to drive high 
-            mask_clear (int):   bits 32-63, mask indicating which output channels to drive low 
+            mask_high (int):     bits 0-31, mask indicating which output channels to drive high 
+            mask_low (int):   bits 32-63, mask indicating which output channels to drive low 
             delay_10ns (int):   bits 64-95, number of extra 10ns clcok cycles to hold this state
             instr (int):        bits 96-127, instruction opcode and loop count or branch address
                                 opcode: bits 20-21
@@ -57,8 +57,8 @@ class PPG(object):
         self.vme.write_value(self.BASE_ADDR+8 , idx)
             
         # Write the 128 bits of instruction to 4 registers
-        if mask_set is not None:    self.vme.write_value(self.BASE_ADDR+0x0c , mask_set)
-        if mask_clear is not None:  self.vme.write_value(self.BASE_ADDR+0x10 , mask_clear)
+        if mask_high is not None:   self.vme.write_value(self.BASE_ADDR+0x0c , mask_high)
+        if mask_low is not None:    self.vme.write_value(self.BASE_ADDR+0x10 , mask_low)
         if delay_10ns is not None:  self.vme.write_value(self.BASE_ADDR+0x14 , delay_10ns)   
         if instr is not None:       self.vme.write_value(self.BASE_ADDR+0x18 , instr)
 
@@ -83,16 +83,21 @@ class PPG(object):
         """
         self._set_command(idx, 0x0, 0xffffffff, 0, 0x0)
 
-    def hold(self, idx:int, mask_set=None, mask_clear=None, delay_10ns=None):
+    def hold(self, idx:int, mask_high:int, mask_low:int, delay_ns:int):
         """Set mask then proceed to next instruction after time delay
         
         Args:
             idx (int):          instruction slot index (address)
-            mask_set (int):     bits 0-31, mask indicating which output channels to drive high 
-            mask_clear (int):   bits 32-63, mask indicating which output channels to drive low 
-            delay_10ns (int):   bits 64-95, number of extra 10ns clcok cycles to hold this state
+            mask_high (int):    bits 0-31, mask indicating which output channels to drive high 
+            mask_low (int):     bits 32-63, mask indicating which output channels to drive low 
+            delay_ns (int):     bits 64-95, hold this state for duration in ns. 
+                                Must be an even multiple of 10 ns
         """
-        self._set_command(idx, mask_set, mask_clear, delay_10ns, 0x100000)
+
+        if delay_ns % 10 != 0:
+            raise RuntimeError("delay_ns must be an even multiple of 10 ns")
+
+        self._set_command(idx, mask_high, mask_low, delay_ns//10, 0x100000)
 
     def mark_loop_start(self, idx:int, nloops:int):
         """Mark the start of a block of code that should be looped over
@@ -152,13 +157,13 @@ class PPG(object):
         self.vme.write_value(self.BASE_ADDR, 0x4)
 
     @property
-    def status(self):
-        """Get status bit
+    def is_running(self):
+        """Get status bit as a boolean
     
         0   out of sequence
         1   in sequence
         """
-        return self.vme.read_value(self.BASE_ADDR) & 1
+        return bool(self.vme.read_value(self.BASE_ADDR) & 1)
 
     def test(self):
         """Run some test commands"""
