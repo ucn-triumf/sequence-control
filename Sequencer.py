@@ -79,19 +79,22 @@ class UCNSequencer(midas.frontend.EquipmentBase):
     # Max number of valves - defined by the number of PPG channels (could be increased if we drop the monitoring channels)
     NVALVES = 9
 
-    # max number of periods per cycle
-    MAX_PERIODS = 10
-
-    # max number of cycles per supercycle
-    MAX_CYCLES = 20
-
     # name of this equipment
     NAME = 'UCNSequencer26'
 
     # default settings
     DEFAULT_SETTINGS = collections.OrderedDict([
         ("Enabled", False),
-        ("ExternalTrigger", True),
+        ("EnableInRun", False),             # if true, set enable to true when run started
+        ("HardwareTrigger", True),
+        ("CyclesEnabled", [True]*10),
+        ("PeriodDurations", [0.0]*50),      # interleaved [period0_cycle{0-n} period1_cycle{0-n}]
+        ("ValveStates", [1]*NVALVES*5),     # interleaved [period0_valve{0-n} period1_valve{0-n}]
+                                            # 1 = energized (open for normally closed valves)
+        ("ValveNames", [""]*NVALVES),
+        ("CurrentCycle", 0),
+        ("CurrentPeriod", 0),
+        ("CurrentSupercycle", 0),
     ])
 
     def __init__(self, client):
@@ -129,6 +132,21 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # You MUST call midas.frontend.EquipmentBase.__init__ in your equipment's __init__ method!
         midas.frontend.EquipmentBase.__init__(self, client, self.NAME, default_common, self.DEFAULT_SETTINGS)
+
+    def detailed_settings_changed_func(self, path, idx, new_value):
+        """
+        You can define this function to be told about when the values in
+        /Equipment/MyMultiPeriodicEquipment_1/Settings have changed.
+        self.settings is updated automatically, and has already changed
+        by this time this function is called.
+        
+        In this version you get told which setting has changed (down to
+        specific array elements).
+        """
+
+        # enable/disable triggers start/stop ppg
+        # cannot change settings of current cycle
+        # hard/soft trigger states only if disabled
 
     def do_timing_sequence(self):
         """Short sequence of pulses at BOR and EOR for timing calibration
@@ -380,6 +398,10 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # }
 
+    def start_ppg(self):
+        """Implement software trigger"""
+
+
     def readout_func(self):
         """
         Repeatedly check if we are in a cycle, if so don't do anything. 
@@ -400,7 +422,8 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         NSEQ is a full copy of the sequencer settings currently in the program.
         """
 
-
+        # check if enabled
+        # if 
 
 
 class SequencerFE(midas.frontend.FrontendBase):
@@ -411,6 +434,17 @@ class SequencerFE(midas.frontend.FrontendBase):
         midas.frontend.FrontendBase.__init__(self, "fe_ucnsequencer")
         self.add_equipment(UCNSequencer(self.client))
         self.client.msg("UCN Sequencer initialized.")
+
+    def begin_of_run(self, run_number):
+
+        # do timing sequence
+        self.set_all_equipment_status("Timing sequence", "greenLight")
+        self.equipment[UCNSequencer.NAME].do_timing_sequence()
+
+        self.set_all_equipment_status("Running", "greenLight")
+
+    def end_of_run(self, run_number):
+        self.set_all_equipment_status("Ready", "greenLight")
 
     def frontend_exit(self):
         self.equipment[UCNSequencer.NAME].exit()
