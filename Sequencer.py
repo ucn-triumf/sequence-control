@@ -85,11 +85,10 @@ class UCNSequencer(midas.frontend.EquipmentBase):
     # default settings
     DEFAULT_SETTINGS = collections.OrderedDict([
         ("Enabled", False),
-        ("EnableInRun", False),             # if true, set enable to true when run started
         ("HardwareTrigger", True),
         ("CyclesEnabled", [True]*10),
         ("PeriodDurations", [0.0]*50),      # interleaved [period0_cycle{0-n} period1_cycle{0-n}]
-        ("ValveStates", [1]*NVALVES*5),     # interleaved [period0_valve{0-n} period1_valve{0-n}]
+        ("ValveStates", [False]*NVALVES*5),     # interleaved [period0_valve{0-n} period1_valve{0-n}]
                                             # 1 = energized (open for normally closed valves)
         ("ValveNames", [""]*NVALVES),
         ("CurrentCycle", 0),
@@ -104,7 +103,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         """
 
         # initialize connection to PPG via VME crate
-        self.ppg = PPG.PPG()
+        # self.ppg = PPG.PPG()
 
         # for messaging and reading ODB
         self.client = client
@@ -189,11 +188,12 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # Start the sequence
         self.ppg.start()
         
-        # Wait 3 seconds for the sequence to finish (overkill - should be 2.5s)
-        time.sleep(3)
-
-        if self.ppg.is_running:
-            raise RuntimeError('PPG still running after timing sequence')
+        # Wait for the sequence to finish
+        t0 = time.monotonic()
+        while self.ppg.is_running:
+            if time.monotonic()-t0 < 10:
+                raise TimeoutError("PPG hung in do_timing_sequence")
+            time.sleep(0.1)
 
     def exit(self):
         """Stop PPG on exit"""
@@ -218,12 +218,6 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # then there will be a blank sequence to execute. If we don't do this, 
         # then we will restart the old sequence whenever we change parameters.
         self.ppg.halt(0)
-
-        # Set trigger source to inititate the sequence
-        if self.external_trigger:
-            self.ppg.set_external_trigger()
-        else:
-            self.ppg.set_internal_trigger()
 
         # now we can safely program the  rest of the sequence with the halt in place
 
@@ -285,9 +279,15 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # stop 
         self.ppg.halt(idx)
 
-        # Add blank 100ns at the start of sequence, overwriting the halt at slot 0 and 
-        # arming the sequence ready for execution on next hardware trigger 
+        # Add blank 100ns at the start of sequence, overwriting the halt at slot 0
         self.ppg.hold(0, mask_high=0x0, mask_low=0xffffffff, delay_ns=100)
+
+        # Set trigger source to inititate the sequence, arming the sequence for 
+        # execution on next trigger 
+        if self.external_trigger:
+            self.ppg.set_external_trigger()
+        else:
+            self.ppg.set_internal_trigger()
 
         #### PPG SEQUENCE END ####
 
@@ -302,105 +302,11 @@ class UCNSequencer(midas.frontend.EquipmentBase):
                             ' trigger.')  
             self.time_last_print = t0
 
-    def set_variables(self):
-        """Read variables from ODB"""
-        # // We check the enable status bit first.  If the sequencer ODB variable is disabled then we don't want to update the whole config_global variable.  This will ensure that the local copy of config_global remains unchanged while editting of the ODB variables is on-going.
-        # int status=0;
-        # bool sequencer_disabled;
-        # INT size = sizeof(float);
-        # status = db_get_value(hDB, 0,"/Equipment/UCNSequencer2018/Settings/enable", &sequencer_disabled, &size, TID_BOOL, FALSE);
-        # if (status != DB_SUCCESS){
-        #     cm_msg(MERROR,"setVariables","Couldn't get the sequencer enable status.  Return code: %d", status);
-        #     return ;
-        # }
-
-
-        # // Set the enable state (keep separate copy, so we can disable if desired)
-        # gEnabled = sequencer_disabled;
-
-        # // if the sequencer isn't enabled then don't bother checking the rest of parameters.
-        # if(!gEnabled){
-        #     printf("Settings... %i %i %i\n",config_global.numberPeriodsInCycle,
-        #     config_global.DurationTimePeriod[0][1], config_global.DurationTimePeriod[0][0]);
-        #     return;
-        # }
-
-        # // Now grab the full copy of the ODB message...
-        # size = sizeof(SEQUENCE_SETTINGS);
-        # status = db_get_record(hDB, settings_handle_global_, &config_global, &size, 0);
-        # if (status != DB_SUCCESS){
-        #     cm_msg(MERROR,"SetBoardRecord","Couldn't get record. Return code: %d", status);
-        #     return ;
-        # }
-
-
-        # if(sequencer_disabled != config_global.enable){
-        #     cm_msg(MERROR,"SetBoardRecord","Warning, two reads of enable bit do not match: %i %i\n",
-        #     sequencer_disabled,config_global.enable);
-        # }
-
-
-        # // Check that we don't have too many periods
-        # if(config_global.numberPeriodsInCycle > MaxPeriods){
-        #     cm_msg(MERROR,"Settings","The requested numberPeriodsInCycle of %i is greater than allowed max (%i); disabling sequencer.\n",config_global.numberPeriodsInCycle,MaxPeriods);
-        #     gEnabled = false;
-        #     return;
-        # }
-
-        # // Check we don't have too many cycles
-        # if(config_global.numberCyclesInSuper > MaxCycles){
-        #     cm_msg(MERROR,"Settings","The requested numberCyclesInSuper of %i is greater than allowed max (%i); disabling sequencer.\n",config_global.numberCyclesInSuper,MaxCycles);
-        #     gEnabled = false;
-        #     return;
-        # }
-
-        # float beam_on_epics, beam_off_epics; 
-        # size = sizeof(float);
-        # status = db_get_value(hDB, 0,"/Equipment/BeamlineEpics/Variables/Measured[30]", &beam_on_epics, &size, TID_FLOAT, FALSE);
-        # status = db_get_value(hDB, 0,"/Equipment/BeamlineEpics/Variables/Measured[31]", &beam_off_epics, &size, TID_FLOAT, FALSE);
-        # beam_on_epics *= 0.000888111;
-        # beam_off_epics *= 0.000888111;
-        # printf("beam_on, beam_off %f %f\n",beam_on_epics, beam_off_epics);
-
-        # // Check all the DurationTimes... should be either >5second or exactly zero.  
-        # // Also check the total time for each period; should be 10seconds less than the kicker ON/OFF period.
-        # // Only check for the set of periods and cycles that are being requested.
-        # for(int j = 0; j < config_global.numberCyclesInSuper; j++){
-
-        #     double total_time_cycle = 0.0;
-        
-        #     for(int i = 0; i < config_global.numberPeriodsInCycle; i++){
-
-        #     double dtime = config_global.DurationTimePeriod[i][j];
-        #     if(dtime < 0.0 || dtime > 4000){
-        #         cm_msg(MERROR,"Settings","The requested DurationTime of %.2f for Period%i[%i] is not valid; must be in the range [0,4000s]; disabling sequencer.\n",dtime,i+1,j);
-        #         gEnabled = false;
-        #         return;	
-        #     }
-        #     total_time_cycle += dtime;
-        #     }
-
-        #     if(total_time_cycle != 0)
-        #     printf("Total time for cycle %i is %f\n",j+1,total_time_cycle);
-
-        #     if(0 && config_global.ExternalTrigger &&  total_time_cycle > beam_on_epics + beam_off_epics - 10){
-        #     cm_msg(MERROR,"Settings","The total time for cycle %i of %.2f seconds is longer than the kicker cycle time of %.2f (with 10sec margin); disabling sequencer.\n",j+1,total_time_cycle,beam_on_epics + beam_off_epics);
-        #     gEnabled = false;
-        #     return;      
-        #     }
-        # }
-
-        # // Reset the cycle index now that we have validated new paramters
-        # gCycleIndex = 0;
-        # gSuperCycleIndex = 0;
-
-        # //cm_msg(MINFO,"Settings","Finished setting and validating the new sequencer settings.\n");
-
-        # }
-
     def start_ppg(self):
         """Implement software trigger"""
-
+        if self.external_trigger: 
+            raise RuntimeError("Cannot send software trigger with external trigger set to True")
+        self.ppg.start()
 
     def readout_func(self):
         """
@@ -423,8 +329,9 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         """
 
         # check if enabled
-        # if 
-
+        if not self.settings['Enabled']:
+            return
+        
 
 class SequencerFE(midas.frontend.FrontendBase):
     """
@@ -437,10 +344,12 @@ class SequencerFE(midas.frontend.FrontendBase):
 
     def begin_of_run(self, run_number):
 
+        # check if equipment is enabled
+        # TODO: fill this in
+
         # do timing sequence
         self.set_all_equipment_status("Timing sequence", "greenLight")
-        self.equipment[UCNSequencer.NAME].do_timing_sequence()
-
+        # self.equipment[UCNSequencer.NAME].do_timing_sequence()
         self.set_all_equipment_status("Running", "greenLight")
 
     def end_of_run(self, run_number):

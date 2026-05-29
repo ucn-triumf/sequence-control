@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="mcss">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="midas.css">
+  <script src="controls.js"></script>
+  <script src="midas.js"></script>
+  <script src="mhttpd.js"></script>
+  <script src="sequencer-control/setup.js"></script>
+  <title>Sequencer26</title>
+</head>
+```
+
+<body class="mcss" onload="mhttpd_init('Sequencer26');setup();">
+
+<!-- header and side navigation will be filled in mhttpd_start -->
+<div id="mheader"></div>
+<div id="msidenav"></div>
+<div id="mmain">
+
+<h1>
+  UCN Sequencer and Run Control
+</h1>
+
+<!-- Run control table - populated by setup::populate_run_control-->
+<table class="mtable">
+  <tr>
+    <th colspan="2" class="mtableheader">Run Control</th>
+    <tr>
+      <td id="run_control_status" colspan="2" style="text-align: center;"></td>
+    </tr>
+    <tbody id="tbl_run_control"></tbody>
+    <tr>
+      <td>External (Hardware) Trigger</td>
+      <td style="text-align: center;">
+        <input type="checkbox" 
+               class="modbcheckbox" 
+               odb-data-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
+               odb-data-editable="1"></input></td>
+    </tr>
+    <tr>
+      <td id="run_control_buttoncell" colspan="2" style="text-align: center;"></td>
+    </tr>
+  </tr>
+</table>
+
+<!-- Settings -->
+<table class="mtable">
+  <tr>
+    <th></th>
+    <th id="duration_header" class="mtableheader">Period Duration (Seconds)</th>
+    <th id="valve_header" class="mtableheader">Valve Open</th>
+  </tr>
+  <tbody id="tbl_timing"></tbody>
+</table>
+
+<body>
+</html>
