@@ -25,110 +25,120 @@
   UCN Sequencer and Run Control
 </h1>
 
-<!-- Run control table - populated by setup::populate_run_control-->
-<table class="mtable">
-  <tr>
-    <th colspan="2" class="mtableheader">Run Control</th>
-    <tr>
-      <td id="run_control_status" colspan="2" style="text-align: center;"></td>
-    </tr>
-    <tbody id="tbl_run_control"></tbody>
-    <tr>
-      <td>External (Hardware) Trigger</td>
-      <td style="text-align: center;">
-        <input type="checkbox" 
-               class="modbcheckbox" 
-               odb-data-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
-               odb-data-editable="1"></input></td>
-    </tr>
-    <tr>
-      <td id="run_control_buttoncell" colspan="2" style="text-align: center;"></td>
-    </tr>
-  </tr>
-</table>
+<!-- Run control, beam status, and sequencer status in one row -->
+<div style="display: flex; gap: 16px; width: 100%">
 
-<!-- Beam Status -->
-<table class="mtable">
-  <tr>
-    <th colspan="2" class="mtableheader">Beam Status</th>
-  </tr>
-  <tr>
-    <th colspan="2" id="beamline_status"></th>
-  </tr>
-  <tr>
-    <td style="width: 250px;">BL1 Extraction Current:</td>
-    <td style="width: 300px;" id="1vextractcur"></td>
-  </tr>
-  <tr>
-    <td> BL1U Predicted Beam Current: </td>
-    <td id="predictedbeamcur"></td>
-  </tr>
-  <tr>
-    <td> Beam On Time: </td>
-    <td id="beamontime"></td>
-  </tr>
-  <tr>
-    <td> Beam Off Time: </td>
-    <td id="beamofftime"></td>
-  </tr>
-  <tr>
-    <td> Kicker Status: </td>
-    <td id="ksm_status"></td>
-  </tr>
-  <tr>
-    <td> Target Status: </td>
-    <td id="beam_on_status"/> </td>
-  </tr>
-</table>
+  <!-- Run control table - populated by setup::populate_run_control-->
+  <table class="mtable" style="flex: 1;">
+    <tr>
+      <th colspan="2" class="mtableheader">Run Control</th>
+      <tr>
+        <td id="run_control_status" colspan="2" style="text-align: center;"></td>
+      </tr>
+      <tbody id="tbl_run_control"></tbody>
+      <tr>
+        <td>External (Hardware) Trigger</td>
+        <td style="text-align: center;">
+          <input type="checkbox" 
+                class="modbcheckbox" 
+                odb-data-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
+                odb-data-editable="1"></input></td>
+      </tr>
+      <tr>
+        <td id="run_control_buttoncell" colspan="2" style="text-align: center;"></td>
+      </tr>
+    </tr>
+  </table>
 
-<!-- Sequencer Status -->
-<table class="mtable">
-  <tr>
-    <th colspan="2" class="mtableheader">Sequencer Status</th>
-  </tr>
-  <tr>
-    <td> In cycle: </td>
-    <td id="incycle"></td>
-  </tr>
-  <tr>
-    <td> Time since last cycle start: </td>
-    <td id="timeincycle"></td>
-  </tr>
-  <tr>
-    <td> Time until cycle end: </td>
-    <td id="timeleftincycle"></td>
-  </tr>
-  <tr>
-    <td> Supercycle duration: </td>
-    <td id="supercycledur"></td>
-  </tr>
-  <tr>
-    <td> Time until supercycle end: </td>
-    <td id="timeleftinsupercycle"></td>
-  </tr>
-  <tr>
-    <td style="width: 250px;">Cycle #</td>
-    <td style="width: 200px;">
-      <!-- <div id="current_cycleN" class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ [6]" ></div> -->
-    </td>
-  </tr>
-  <tr>
-    <td>Supercycle #</td>
-    <td>
-      <!-- <div class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ[7]" ></div> -->
-    </td>
-  </tr>
-</table>
+  <!-- Beam Status -->
+  <table class="mtable" style="flex: 1;">
+    <tr>
+      <th colspan="2" class="mtableheader">Beam Status</th>
+    </tr>
+    <tr>
+      <th colspan="2" id="beamline_status"></th>
+    </tr>
+    <tr>
+      <td style="width: 250px;">BL1 Extraction Current:</td>
+      <td style="width: 300px;" id="1vextractcur"></td>
+    </tr>
+    <tr>
+      <td> BL1U Predicted Beam Current: </td>
+      <td id="predictedbeamcur"></td>
+    </tr>
+    <tr>
+      <td> Beam On Time: </td>
+      <td id="beamontime"></td>
+    </tr>
+    <tr>
+      <td> Beam Off Time: </td>
+      <td id="beamofftime"></td>
+    </tr>
+    <tr>
+      <td> Kicker Status: </td>
+      <td id="ksm_status"></td>
+    </tr>
+    <tr>
+      <td> Target Status: </td>
+      <td id="beam_on_status"/> </td>
+    </tr>
+  </table>
 
-<!-- Settings -->
-<table class="mtable">
-  <tr>
-    <th></th>
-    <th id="duration_header" class="mtableheader">Period Duration (Seconds)</th>
-    <th id="valve_header" class="mtableheader">Valve Open</th>
-  </tr>
-  <tbody id="tbl_timing"></tbody>
-</table>
+  <!-- Sequencer Status - last item in the row div -->
+  <table class="mtable" style="flex: 1;">
+    <tr>
+      <th colspan="2" class="mtableheader">Sequencer Status</th>
+    </tr>
+    <tr>
+      <td> In cycle: </td>
+      <td id="incycle"></td>
+    </tr>
+    <tr>
+      <td> Time since last cycle start: </td>
+      <td id="timeincycle"></td>
+    </tr>
+    <tr>
+      <td> Time until cycle end: </td>
+      <td id="timeleftincycle"></td>
+    </tr>
+    <tr>
+      <td> Supercycle duration: </td>
+      <td id="supercycledur"></td>
+    </tr>
+    <tr>
+      <td> Time until supercycle end: </td>
+      <td id="timeleftinsupercycle"></td>
+    </tr>
+    <tr>
+      <td style="width: 250px;">Cycle #</td>
+      <td style="width: 200px;">
+        <!-- <div id="current_cycleN" class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ [6]" ></div> -->
+      </td>
+    </tr>
+    <tr>
+      <td>Supercycle #</td>
+      <td>
+        <!-- <div class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ[7]" ></div> -->
+      </td>
+    </tr>
+  </table>
+
+</div><!-- end flex row -->
+
+
+<!-- Settings in a second row -->
+<div style="display: flex; gap: 16px; width: 100%">
+
+  <!-- Settings -->
+  <table class="mtable" style="flex: 1;">
+    <tr>
+      <th></th>
+      <th id="duration_header" class="mtableheader">Period Duration (Seconds)</th>
+      <th id="valve_header" class="mtableheader">Valve Open</th>
+    </tr>
+    <tbody id="tbl_timing"></tbody>
+  </table>
+</div> <!-- end flex row -->
 
 <body>
 </html>

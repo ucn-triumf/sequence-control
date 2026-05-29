@@ -89,13 +89,10 @@ function populate_timings(){
         // add/remove cycle buttons
         cell = row2.insertCell();
         cell.style.width = '40px';
+        cell.rowSpan = 2;
         cell.appendChild(make_button("chevron-left.svg", rmcycle, NCYCLES<3))
         cell.appendChild(make_button("chevron-right.svg", addcycle, false))
 
-        // blank column for niceness
-        cell = row3.insertCell();
-        cell.rowSpan = NPERIODS-1;
-        
         // valve ids and names
         for(let valvei=0; valvei < NVALVES; valvei++){
             
@@ -107,22 +104,15 @@ function populate_timings(){
             div.setAttribute('data-odb-editable', `1`);
             cell.appendChild(div);
             cell.style.textAlign = 'center';
-
-            // id
-            cell = row3.insertCell();
-            cell.innerText = valvei;
-            cell.style.textAlign = 'center';
+            cell.rowSpan = 2;
         }
 
         // add/remove valve buttons
         cell = row2.insertCell();
         cell.style.width = '40px';
+        cell.rowSpan = 2;
         cell.appendChild(make_button("chevron-left.svg", rmvalve, NVALVES < 3))
         cell.appendChild(make_button("chevron-right.svg", addvalve, false))
-
-        // blank column for niceness
-        cell = row3.insertCell();
-        cell.rowSpan = NPERIODS+1;
         
         // populate durations
         let cellidx_cycle = 0; // cell index in the list
@@ -133,7 +123,17 @@ function populate_timings(){
 
             // header column
             cell = row.insertCell();
-            cell.innerText = `Period ${periodi}`;
+            let label = document.createElement('label');
+            label.innerText = `Period ${periodi}`;
+            let box = document.createElement('input');
+            box.type = 'checkbox';
+            box.className = "modbcheckbox";
+            box.setAttribute('data-odb-path', 
+                `/Equipment/${NAME}/Settings/PeriodsEnabled[${periodi}]`);
+            box.setAttribute('data-odb-editable', `1`);
+            label.appendChild(box);
+            cell.appendChild(label);
+            cell.innerText 
 
             // cell timings
             for(let cyclei=0; cyclei < NCYCLES; cyclei++){
@@ -156,6 +156,12 @@ function populate_timings(){
                 cell.appendChild(make_button("chevron-down.svg", addperiod, false))
             }
 
+            // blank column for niceness
+            if(periodi == 0){
+                cell = row.insertCell();
+                cell.rowSpan = NPERIODS-2;    
+            }
+
             // valve states
             for(let valvei=0; valvei < NVALVES; valvei++){
                 cell = row.insertCell();
@@ -167,6 +173,12 @@ function populate_timings(){
                 div.setAttribute('data-odb-editable', `1`);
                 cell.appendChild(div);
                 cell.style.textAlign = 'center';     
+            }
+
+            // blank column for niceness
+            if(periodi == 0){
+                cell = row.insertCell();
+                cell.rowSpan = NPERIODS;
             }
         }
 
