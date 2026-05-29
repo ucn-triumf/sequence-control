@@ -8,6 +8,7 @@
   <script src="mhttpd.js"></script>
   <script src="sequencer-control/run_control.js"></script>
   <script src="sequencer-control/period_timings.js"></script>
+  <script src="sequencer-control/beam_status.js"></script>
   <script src="sequencer-control/setup.js"></script>
   <title>Sequencer26</title>
 </head>
@@ -43,6 +44,79 @@
     <tr>
       <td id="run_control_buttoncell" colspan="2" style="text-align: center;"></td>
     </tr>
+  </tr>
+</table>
+
+<!-- Beam Status -->
+<table class="mtable">
+  <tr>
+    <th colspan="2" class="mtableheader">Beam Status</th>
+  </tr>
+  <tr>
+    <th colspan="2" id="beamline_status"></th>
+  </tr>
+  <tr>
+    <td style="width: 250px;">BL1 Extraction Current:</td>
+    <td style="width: 300px;" id="1vextractcur"></td>
+  </tr>
+  <tr>
+    <td> BL1U Predicted Beam Current: </td>
+    <td id="predictedbeamcur"></td>
+  </tr>
+  <tr>
+    <td> Beam On Time: </td>
+    <td id="beamontime"></td>
+  </tr>
+  <tr>
+    <td> Beam Off Time: </td>
+    <td id="beamofftime"></td>
+  </tr>
+  <tr>
+    <td> Kicker Status: </td>
+    <td id="ksm_status"></td>
+  </tr>
+  <tr>
+    <td> Target Status: </td>
+    <td id="beam_on_status"/> </td>
+  </tr>
+</table>
+
+<!-- Sequencer Status -->
+<table class="mtable">
+  <tr>
+    <th colspan="2" class="mtableheader">Sequencer Status</th>
+  </tr>
+  <tr>
+    <td> In cycle: </td>
+    <td id="incycle"></td>
+  </tr>
+  <tr>
+    <td> Time since last cycle start: </td>
+    <td id="timeincycle"></td>
+  </tr>
+  <tr>
+    <td> Time until cycle end: </td>
+    <td id="timeleftincycle"></td>
+  </tr>
+  <tr>
+    <td> Supercycle duration: </td>
+    <td id="supercycledur"></td>
+  </tr>
+  <tr>
+    <td> Time until supercycle end: </td>
+    <td id="timeleftinsupercycle"></td>
+  </tr>
+  <tr>
+    <td style="width: 250px;">Cycle #</td>
+    <td style="width: 200px;">
+      <!-- <div id="current_cycleN" class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ [6]" ></div> -->
+    </td>
+  </tr>
+  <tr>
+    <td>Supercycle #</td>
+    <td>
+      <!-- <div class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ[7]" ></div> -->
+    </td>
   </tr>
 </table>
 
