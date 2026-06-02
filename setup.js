@@ -19,4 +19,5 @@ function setup(){
     setInterval(setTotalDuration, 1000);
     // setInterval(update_beam_status, 1000); // missing epics variables
     setInterval(update_seq_status, 1000);
+    setInterval(disable_and_highlight_cycle_in_progress, 1000);
 }

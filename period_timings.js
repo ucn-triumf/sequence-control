@@ -85,11 +85,15 @@ function populate_timings(settings = null){
             div.setAttribute('data-odb-editable', `1`);
             cell.appendChild(div);
             cell.style.textAlign = 'center';
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', (e) => { if (e.target !== div) div.click(); });
 
             // id
             cell = row3.insertCell();
             cell.innerText = cyclei;
             cell.style.textAlign = 'center';
+            cell.style.fontWeight = 'bold';
+            cell.id = `cycle_${cyclei}`;
         }
 
         // add/remove cycle buttons
@@ -121,7 +125,7 @@ function populate_timings(settings = null){
         cell.appendChild(make_button("chevron-left.svg", rmvalve, NVALVES < 3))
         cell.appendChild(make_button("chevron-right.svg", addvalve, false))
         
-        // populate durations
+        // populate period durations
         let cellidx_cycle = 0; // cell index in the list
         let cellidx_valve = 0; // cell index in the list
         for(let periodi=0; periodi < NPERIODS; periodi++){
@@ -140,17 +144,20 @@ function populate_timings(settings = null){
             box.setAttribute('data-odb-editable', `1`);
             label.appendChild(box);
             cell.appendChild(label);
-            cell.innerText 
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', (e) => { if (e.target === cell) box.click(); });
+            cell.id = `period_${periodi}`;
 
             // cell timings
             for(let cyclei=0; cyclei < NCYCLES; cyclei++){
                 cell = row.insertCell();
-                cell.id = `duration_c${cyclei}_p${periodi}`;
+                cell.id = `cell_c${cyclei}_p${periodi}`;
                 let div =  document.createElement('div');
                 div.className = "modbvalue";
                 div.setAttribute('data-odb-path', 
                     `/Equipment/${NAME}/Settings/PeriodDurations[${cellidx_cycle++}]`);
                 div.setAttribute('data-odb-editable', `1`);
+                div.id = `dur_c${cyclei}_p${periodi}`;
                 cell.appendChild(div);
                 cell.style.textAlign = 'center';     
             }
@@ -181,6 +188,8 @@ function populate_timings(settings = null){
                 cell.appendChild(div);
                 cell.style.textAlign = 'center';
                 cell.style.width = '1px';
+                cell.style.cursor = 'pointer';
+                cell.addEventListener('click', (e) => { if (e.target !== div) div.click(); });
             }
 
             // blank column for niceness
@@ -402,6 +411,66 @@ function setTotalDuration(){
             let cell = document.getElementById(`total_duration_${cyclei}`);
             if(cell != null){
                 cell.innerText = totals[cyclei];
+            }
+        }
+
+     }).catch(function(error) {
+        mjsonrpc_error_alert(error);
+    });
+
+}
+
+/** Prevent editing of cycle in progress and highlight cells */
+function disable_and_highlight_cycle_in_progress(){
+    mjsonrpc_db_get_values([`/Equipment/${NAME}/Settings`]).then(function(rpc){
+        let settings = rpc.result.data[0];
+        
+        // TODO: replace with check for incycle flag
+        let incycle = true;
+
+        for(let cyclei=0; cyclei<NCYCLES; cyclei++){
+            for(let periodi=0; periodi<NPERIODS; periodi++){
+                
+                // enable all cycles except for current cycle
+                let div = document.getElementById(`dur_c${cyclei}_p${periodi}`);
+                let cell = document.getElementById(`cell_c${cyclei}_p${periodi}`);
+                
+                if(cyclei == settings.currentcycle && incycle){
+                    div.setAttribute('data-odb-editable', `0`);
+                } else {
+                    div.setAttribute('data-odb-editable', `1`);
+                }
+            
+                if(cyclei == settings.currentcycle && periodi == settings.currentperiod && incycle){
+                    cell.classList.add("mgreen");
+                } else {
+                    cell.classList.remove("mgreen");
+                }
+
+
+
+            }
+        }
+        
+        // highlight current cycle
+        for(let cyclei=0; cyclei<NCYCLES; cyclei++){
+            let cell = document.getElementById(`cycle_${cyclei}`);
+            
+            if(cyclei == settings.currentcycle && incycle){
+                cell.classList.add("mgreen");
+            } else {
+                cell.classList.remove("mgreen");
+            }
+        }
+        
+        // highlight current period
+        for(let periodi=0; periodi<NPERIODS; periodi++){
+            let cell = document.getElementById(`period_${periodi}`);
+            
+            if(periodi == settings.currentperiod && incycle){
+                cell.classList.add("mgreen");
+            } else {
+                cell.classList.remove("mgreen");
             }
         }
 
