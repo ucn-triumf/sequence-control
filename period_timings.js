@@ -1,6 +1,6 @@
 
 /** Helper function for making add/rm cycle/period/valve buttons */
-function make_button(img, onclick, disable){
+function make_button(img, onclick, disable, title){
     button = document.createElement("button");
     button.className = "image-button";
     button.innerHTML = `<img src="icons/${img}" width="15px">`;
@@ -8,6 +8,7 @@ function make_button(img, onclick, disable){
     button.style.padding = '4px 0px 0px 1px';
     button.style.width = '20px';
     button.disabled = disable;
+    button.title = title;
     return button
 }
 
@@ -100,8 +101,8 @@ function populate_timings(settings = null){
         cell = row2.insertCell();
         cell.style.width = '40px';
         cell.rowSpan = 2;
-        cell.appendChild(make_button("chevron-left.svg", rmcycle, NCYCLES<3))
-        cell.appendChild(make_button("chevron-right.svg", addcycle, false))
+        cell.appendChild(make_button("chevron-left.svg", rmcycle, NCYCLES<3, "Remove cycle"));
+        cell.appendChild(make_button("chevron-right.svg", addcycle, false, "Add cycle"));
 
         // valve ids and names
         for(let valvei=0; valvei < NVALVES; valvei++){
@@ -122,8 +123,8 @@ function populate_timings(settings = null){
         cell = row2.insertCell();
         cell.style.width = '40px';
         cell.rowSpan = 2;
-        cell.appendChild(make_button("chevron-left.svg", rmvalve, NVALVES < 3))
-        cell.appendChild(make_button("chevron-right.svg", addvalve, false))
+        cell.appendChild(make_button("chevron-left.svg", rmvalve, NVALVES < 3, "Remove valve"))
+        cell.appendChild(make_button("chevron-right.svg", addvalve, false, "Add valve"))
         
         // populate period durations
         let cellidx_cycle = 0; // cell index in the list
@@ -166,14 +167,14 @@ function populate_timings(settings = null){
             if(periodi == NPERIODS-2) {
                 cell = row.insertCell();
                 cell.rowSpan = 2;
-                cell.appendChild(make_button("chevron-up.svg", rmperiod, NPERIODS<3))
-                cell.appendChild(make_button("chevron-down.svg", addperiod, false))
+                cell.appendChild(make_button("chevron-up.svg", rmperiod, NPERIODS<3, "Remove period"))
+                cell.appendChild(make_button("chevron-down.svg", addperiod, false, "Add period"))
             }
 
-            // blank column for niceness
-            if(periodi == 0){
+            // blank column between buttons and valves (only needed when buttons don't span all rows)
+            if(periodi == 0 && NPERIODS > 2){
                 cell = row.insertCell();
-                cell.rowSpan = NPERIODS-2;    
+                cell.rowSpan = NPERIODS-2;
             }
 
             // valve states
@@ -230,25 +231,27 @@ async function addcycle(){
     let rpc = await mjsonrpc_db_get_values([basepath]);
     let settings = rpc.result.data[0];
     let dur = settings.perioddurations;
+    let ncycles = settings.cyclesenabled.length;
+    let nperiods = dur.length / ncycles;
 
     // copy the period durations, inserting zero at the end of each cycle
     let newdur = [];
     let cyclei = 0;
     for(let d of dur){
-        if(cyclei < NCYCLES){
+        if(cyclei < ncycles){
             newdur.push(d);
             cyclei++;
         } else {
-            newdur.push(0);     // add new period
+            newdur.push(0);     // add new cycle
             newdur.push(d);     // make sure to keep the data for the next one
             cyclei = 1;         // we pushed d in the last step, now cycle is 1
         }
     }
     newdur.push(0);
 
-    NCYCLES++;
+    NCYCLES = ncycles + 1;
     let paths = [`${basepath}/CyclesEnabled`, `${basepath}/PeriodDurations`];
-    let sizes = [NCYCLES, NCYCLES*NPERIODS];
+    let sizes = [NCYCLES, NCYCLES * nperiods];
     await mjsonrpc_db_resize(paths, sizes);
     await mjsonrpc_db_set_value(paths[1], newdur);
 
@@ -264,12 +267,14 @@ async function rmcycle(){
     let rpc = await mjsonrpc_db_get_values([basepath]);
     let settings = rpc.result.data[0];
     let dur = settings.perioddurations;
+    let ncycles = settings.cyclesenabled.length;
+    let nperiods = dur.length / ncycles;
 
     // copy the period durations, deleting a value at the end of each cycle
     let newdur = [];
     let cyclei = 0;
     for(let d of dur){
-        if(cyclei < NCYCLES-1){
+        if(cyclei < ncycles-1){
             newdur.push(d);
             cyclei++;
         } else {
@@ -277,9 +282,9 @@ async function rmcycle(){
         }
     }
 
-    NCYCLES--;
+    NCYCLES = ncycles - 1;
     let paths = [`${basepath}/CyclesEnabled`, `${basepath}/PeriodDurations`];
-    let sizes = [NCYCLES, NCYCLES*NPERIODS];
+    let sizes = [NCYCLES, NCYCLES * nperiods];
     await mjsonrpc_db_resize(paths, sizes);
     await mjsonrpc_db_set_value(paths[1], newdur);
 
@@ -295,25 +300,27 @@ async function addvalve(){
     let rpc = await mjsonrpc_db_get_values([basepath]);
     let settings = rpc.result.data[0];
     let dur = settings.valvestates;
+    let nvalves = settings.valvenames.length;
+    let nperiods = dur.length / nvalves;
 
     // copy the valve states, inserting false at the end of each period
     let newdur = [];
-    let cyclei = 0;
+    let valvei = 0;
     for(let d of dur){
-        if(cyclei < NVALVES){
+        if(valvei < nvalves){
             newdur.push(d);
-            cyclei++;
+            valvei++;
         } else {
-            newdur.push(false);     // add new period
+            newdur.push(false);     // add new valve
             newdur.push(d);     // make sure to keep the data for the next one
-            cyclei = 1;         // we pushed d in the last step, now cycle is 1
+            valvei = 1;         // we pushed d in the last step, now valve is 1
         }
     }
     newdur.push(false);
 
-    NVALVES++;
+    NVALVES = nvalves + 1;
     let paths = [`${basepath}/ValveNames`, `${basepath}/ValveStates`];
-    let sizes = [NVALVES, NVALVES*NPERIODS];
+    let sizes = [NVALVES, NVALVES * nperiods];
     await mjsonrpc_db_resize(paths, sizes);
     await mjsonrpc_db_set_value(paths[1], newdur);
 
@@ -329,22 +336,24 @@ async function rmvalve(){
     let rpc = await mjsonrpc_db_get_values([basepath]);
     let settings = rpc.result.data[0];
     let dur = settings.valvestates;
+    let nvalves = settings.valvenames.length;
+    let nperiods = dur.length / nvalves;
 
     // copy the valve states, deleting a value at the end of each period
     let newdur = [];
-    let cyclei = 0;
+    let valvei = 0;
     for(let d of dur){
-        if(cyclei < NVALVES-1){
+        if(valvei < nvalves-1){
             newdur.push(d);
-            cyclei++;
+            valvei++;
         } else {
-            cyclei = 0;
+            valvei = 0;
         }
     }
 
-    NVALVES--;
+    NVALVES = nvalves - 1;
     let paths = [`${basepath}/ValveNames`, `${basepath}/ValveStates`];
-    let sizes = [NVALVES, NVALVES*NPERIODS];
+    let sizes = [NVALVES, NVALVES * nperiods];
     await mjsonrpc_db_resize(paths, sizes);
     await mjsonrpc_db_set_value(paths[1], newdur);
 
@@ -358,11 +367,12 @@ async function addperiod(){
     // get paths
     let basepath = `/Equipment/${NAME}/Settings`;
     let paths = [`${basepath}/ValveStates`,
-                 `${basepath}/PeriodDurations`];
+                 `${basepath}/PeriodDurations`,
+                 `${basepath}/PeriodsEnabled`];
     
     // resize
     NPERIODS++;
-    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS];
+    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
     
     // redraw the table
@@ -374,11 +384,12 @@ async function rmperiod(){
     // get paths
     let basepath = `/Equipment/${NAME}/Settings`;
     let paths = [`${basepath}/ValveStates`,
-                 `${basepath}/PeriodDurations`];
+                 `${basepath}/PeriodDurations`,
+                `${basepath}/PeriodsEnabled`];
     
     // resize
     NPERIODS--;
-    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS];
+    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
     
     // redraw the table
@@ -387,11 +398,21 @@ async function rmperiod(){
 
 /** Calculate the total duration of each cycle */
 function setTotalDuration(){
-    let paths = [`/Equipment/${NAME}/Settings/PeriodDurations`];
-     mjsonrpc_db_get_values(paths).then(function(rpc){
+    if(NCYCLES === 0) return;  // globals not yet initialized; avoid division by zero
 
-         // period durations
-         let durations = rpc.result.data[0];
+    
+    let paths = [`/Equipment/${NAME}/Settings/PeriodDurations`];
+    mjsonrpc_db_get_values(paths).then(function(rpc){
+        
+        // TODO: get kicker settings
+        let beamon = 60;
+        let beamoff = 240;
+
+        // period durations
+        let durations = rpc.result.data[0];
+
+        // derive NPERIODS from fetched length to avoid reading stale globals during a resize
+        let nperiods = Math.floor(durations.length / NCYCLES);
 
          // array of zeros
         let totals = [];
@@ -400,7 +421,7 @@ function setTotalDuration(){
 
         let idx = 0;
 
-        for(let periodi=0; periodi<NPERIODS; periodi++){
+        for(let periodi=0; periodi<nperiods; periodi++){
             for(let cyclei=0; cyclei<NCYCLES; cyclei++){
                 totals[cyclei] += durations[idx++];
             }
@@ -411,6 +432,15 @@ function setTotalDuration(){
             let cell = document.getElementById(`total_duration_${cyclei}`);
             if(cell != null){
                 cell.innerText = totals[cyclei];
+
+                // highlight bad total duration
+                if(totals[cyclei] > beamon + beamoff + 10){
+                    cell.classList.add('morange');
+                    cell.title ="Total cycle duration must be less than beam on + beam off + 10 seconds";
+                } else {
+                    cell.classList.remove('morange');
+                    cell.title = "";
+                }
             }
         }
 
@@ -430,43 +460,43 @@ function disable_and_highlight_cycle_in_progress(){
 
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
             for(let periodi=0; periodi<NPERIODS; periodi++){
-                
+
                 // enable all cycles except for current cycle
                 let div = document.getElementById(`dur_c${cyclei}_p${periodi}`);
                 let cell = document.getElementById(`cell_c${cyclei}_p${periodi}`);
-                
+                if(div === null || cell === null) continue;
+
                 if(cyclei == settings.currentcycle && incycle){
                     div.setAttribute('data-odb-editable', `0`);
                 } else {
                     div.setAttribute('data-odb-editable', `1`);
                 }
-            
+
                 if(cyclei == settings.currentcycle && periodi == settings.currentperiod && incycle){
                     cell.classList.add("mgreen");
                 } else {
                     cell.classList.remove("mgreen");
                 }
-
-
-
             }
         }
-        
+
         // highlight current cycle
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
             let cell = document.getElementById(`cycle_${cyclei}`);
-            
+            if(cell === null) continue;
+
             if(cyclei == settings.currentcycle && incycle){
                 cell.classList.add("mgreen");
             } else {
                 cell.classList.remove("mgreen");
             }
         }
-        
+
         // highlight current period
         for(let periodi=0; periodi<NPERIODS; periodi++){
             let cell = document.getElementById(`period_${periodi}`);
-            
+            if(cell === null) continue;
+
             if(periodi == settings.currentperiod && incycle){
                 cell.classList.add("mgreen");
             } else {
