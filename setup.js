@@ -11,10 +11,12 @@ function setup(){
     // draw elements in base webpage
     populate_run_control();
     populate_timings();
-    // update_beam_status(); // not implemented yet
+    // update_beam_status(); // missing epics variables
+    update_seq_status();
 
     // update every 1 second
-    setInterval(update_run_control, 1000)
-    setInterval(setTotalDuration, 1000)
-    // setInterval(update_beam_status, 1000) // not implemented yet
+    setInterval(update_run_control, 1000);
+    setInterval(setTotalDuration, 1000);
+    // setInterval(update_beam_status, 1000); // missing epics variables
+    setInterval(update_seq_status, 1000);
 }

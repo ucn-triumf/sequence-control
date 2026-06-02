@@ -9,6 +9,7 @@
   <script src="sequencer-control/run_control.js"></script>
   <script src="sequencer-control/period_timings.js"></script>
   <script src="sequencer-control/beam_status.js"></script>
+  <script src="sequencer-control/sequencer_status.js"></script>
   <script src="sequencer-control/setup.js"></script>
   <title>Sequencer26</title>
 </head>
@@ -90,41 +91,39 @@
       <th colspan="2" class="mtableheader">Sequencer Status</th>
     </tr>
     <tr>
+      <td id="seq_status" colspan="2" style="text-align: center;"></td>
+    </tr>
+    <tr>
       <td> In cycle: </td>
       <td id="incycle"></td>
     </tr>
     <tr>
-      <td> Time since last cycle start: </td>
-      <td id="timeincycle"></td>
+      <td style="width: 250px;">Cycle #</td>
+      <td style="width: 200px;">
+        <div class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Settings/CurrentCycle" ></div>
+      </td>
+    </tr>
+    <tr>
+      <td>Supercycle #</td>
+      <td>
+        <div class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Settings/CurrentSupercycle" ></div>
+      </td>
     </tr>
     <tr>
       <td> Time until cycle end: </td>
       <td id="timeleftincycle"></td>
     </tr>
     <tr>
-      <td> Supercycle duration: </td>
-      <td id="supercycledur"></td>
-    </tr>
-    <tr>
       <td> Time until supercycle end: </td>
       <td id="timeleftinsupercycle"></td>
     </tr>
     <tr>
-      <td style="width: 250px;">Cycle #</td>
-      <td style="width: 200px;">
-        <!-- <div id="current_cycleN" class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ [6]" ></div> -->
-      </td>
-    </tr>
-    <tr>
-      <td>Supercycle #</td>
-      <td>
-        <!-- <div class="modbvalue" data-odb-path="/Equipment/UCNSequencer26/Variables/USEQ[7]" ></div> -->
-      </td>
+      <td> Supercycle duration: </td>
+      <td id="supercycledur"></td>
     </tr>
   </table>
 
 </div><!-- end flex row -->
-
 
 <!-- Settings in a second row -->
 <div style="display: flex; gap: 16px; width: 100%">
