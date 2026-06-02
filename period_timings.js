@@ -11,8 +11,12 @@ function make_button(img, onclick, disable){
     return button
 }
 
-/** Fill in cycle and period and valve settings input table */
-function populate_timings(){
+/** Fill in cycle and period and valve settings input table.
+ *
+ * Args:
+ *     settings: ODB settings object. If null, fetches from server.
+ */
+function populate_timings(settings = null){
 
     // clear table contents
     var table_old = document.getElementById("tbl_timing");
@@ -20,10 +24,12 @@ function populate_timings(){
     table.id = "tbl_timing";
     table_old.parentNode.replaceChild(table, table_old);
 
-    // get equipment settings and populate
-    mjsonrpc_db_get_values([`/Equipment/${NAME}/Settings`]).then(function(rpc){
+    // use provided settings or fetch from server
+    let promise = settings !== null
+        ? Promise.resolve(settings)
+        : mjsonrpc_db_get_values([`/Equipment/${NAME}/Settings`]).then(rpc => rpc.result.data[0]);
 
-        let settings = rpc.result.data[0];
+    promise.then(function(settings){
 
         // get sizes
         NCYCLES = settings.cyclesenabled.length;
@@ -104,6 +110,7 @@ function populate_timings(){
             div.setAttribute('data-odb-editable', `1`);
             cell.appendChild(div);
             cell.style.textAlign = 'center';
+            cell.style.width = '80px';
             cell.rowSpan = 2;
         }
 
@@ -168,11 +175,12 @@ function populate_timings(){
                 let div =  document.createElement('input');
                 div.type = "checkbox";
                 div.className = "modbcheckbox";
-                div.setAttribute('data-odb-path', 
+                div.setAttribute('data-odb-path',
                     `/Equipment/${NAME}/Settings/ValveStates[${cellidx_valve++}]`);
                 div.setAttribute('data-odb-editable', `1`);
                 cell.appendChild(div);
-                cell.style.textAlign = 'center';     
+                cell.style.textAlign = 'center';
+                cell.style.width = '1px';
             }
 
             // blank column for niceness
@@ -209,13 +217,10 @@ function populate_timings(){
 /** expand cycle list by one */
 async function addcycle(){
 
-    // get old period durations
     let basepath = `/Equipment/${NAME}/Settings`;
-    let paths = [`${basepath}/CyclesEnabled`,
-                 `${basepath}/PeriodDurations`];
-    
-    let rpc = await mjsonrpc_db_get_values(paths);
-    let dur = rpc.result.data[1];
+    let rpc = await mjsonrpc_db_get_values([basepath]);
+    let settings = rpc.result.data[0];
+    let dur = settings.perioddurations;
 
     // copy the period durations, inserting zero at the end of each cycle
     let newdur = [];
@@ -230,30 +235,26 @@ async function addcycle(){
             cyclei = 1;         // we pushed d in the last step, now cycle is 1
         }
     }
-
-    // add a final zero for the last period
     newdur.push(0);
 
-    // resize
     NCYCLES++;
+    let paths = [`${basepath}/CyclesEnabled`, `${basepath}/PeriodDurations`];
     let sizes = [NCYCLES, NCYCLES*NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
-    
-    // set values and redraw the table
     await mjsonrpc_db_set_value(paths[1], newdur);
-    populate_timings();
+
+    populate_timings({...settings,
+        cyclesenabled: [...settings.cyclesenabled, true],
+        perioddurations: newdur});
 }
 
 /** reduce cycle list by one */
 async function rmcycle(){
 
-    // get old period durations
     let basepath = `/Equipment/${NAME}/Settings`;
-    let paths = [`${basepath}/CyclesEnabled`,
-                 `${basepath}/PeriodDurations`];
-    
-    let rpc = await mjsonrpc_db_get_values(paths);
-    let dur = rpc.result.data[1];
+    let rpc = await mjsonrpc_db_get_values([basepath]);
+    let settings = rpc.result.data[0];
+    let dur = settings.perioddurations;
 
     // copy the period durations, deleting a value at the end of each cycle
     let newdur = [];
@@ -267,27 +268,26 @@ async function rmcycle(){
         }
     }
 
-    // resize
     NCYCLES--;
+    let paths = [`${basepath}/CyclesEnabled`, `${basepath}/PeriodDurations`];
     let sizes = [NCYCLES, NCYCLES*NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
-    
-    // set values and redraw the table
     await mjsonrpc_db_set_value(paths[1], newdur);
-    populate_timings();
+
+    populate_timings({...settings,
+        cyclesenabled: settings.cyclesenabled.slice(0, NCYCLES),
+        perioddurations: newdur});
 }
 
 /** expand valve list by one */
 async function addvalve(){
-      // get old period durations
-    let basepath = `/Equipment/${NAME}/Settings`;
-    let paths = [`${basepath}/ValveNames`,
-                 `${basepath}/ValveStates`];
-    
-    let rpc = await mjsonrpc_db_get_values(paths);
-    let dur = rpc.result.data[1];
 
-    // copy the valve states, inserting false at the end of each cycle
+    let basepath = `/Equipment/${NAME}/Settings`;
+    let rpc = await mjsonrpc_db_get_values([basepath]);
+    let settings = rpc.result.data[0];
+    let dur = settings.valvestates;
+
+    // copy the valve states, inserting false at the end of each period
     let newdur = [];
     let cyclei = 0;
     for(let d of dur){
@@ -300,31 +300,28 @@ async function addvalve(){
             cyclei = 1;         // we pushed d in the last step, now cycle is 1
         }
     }
-
-    // add a final false for the last period
     newdur.push(false);
 
-    // resize
     NVALVES++;
+    let paths = [`${basepath}/ValveNames`, `${basepath}/ValveStates`];
     let sizes = [NVALVES, NVALVES*NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
-    
-    // set values and redraw the table
     await mjsonrpc_db_set_value(paths[1], newdur);
-    populate_timings();
+
+    populate_timings({...settings,
+        valvenames: [...settings.valvenames, ''],
+        valvestates: newdur});
 }
 
 /** reduce valve list by one */
 async function rmvalve(){
-    // get old period durations
-    let basepath = `/Equipment/${NAME}/Settings`;
-    let paths = [`${basepath}/ValveNames`,
-                 `${basepath}/ValveStates`];
-    
-    let rpc = await mjsonrpc_db_get_values(paths);
-    let dur = rpc.result.data[1];
 
-    // copy the period durations, deleting a value at the end of each cycle
+    let basepath = `/Equipment/${NAME}/Settings`;
+    let rpc = await mjsonrpc_db_get_values([basepath]);
+    let settings = rpc.result.data[0];
+    let dur = settings.valvestates;
+
+    // copy the valve states, deleting a value at the end of each period
     let newdur = [];
     let cyclei = 0;
     for(let d of dur){
@@ -336,14 +333,15 @@ async function rmvalve(){
         }
     }
 
-    // resize
     NVALVES--;
+    let paths = [`${basepath}/ValveNames`, `${basepath}/ValveStates`];
     let sizes = [NVALVES, NVALVES*NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
-    
-    // set values and redraw the table
     await mjsonrpc_db_set_value(paths[1], newdur);
-    populate_timings();
+
+    populate_timings({...settings,
+        valvenames: settings.valvenames.slice(0, NVALVES),
+        valvestates: newdur});
 }
 
 /** expand period list by one */
