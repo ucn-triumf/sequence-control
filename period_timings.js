@@ -143,6 +143,7 @@ function populate_timings(settings = null){
             box.setAttribute('data-odb-path', 
                 `/Equipment/${NAME}/Settings/PeriodsEnabled[${periodi}]`);
             box.setAttribute('data-odb-editable', `1`);
+            box.id = `checkbox_period_${periodi}`;
             label.appendChild(box);
             cell.appendChild(label);
             cell.style.cursor = 'pointer';
@@ -186,6 +187,7 @@ function populate_timings(settings = null){
                 div.setAttribute('data-odb-path',
                     `/Equipment/${NAME}/Settings/ValveStates[${cellidx_valve++}]`);
                 div.setAttribute('data-odb-editable', `1`);
+                div.id = `checkbox_valve_${valvei}_${periodi}`;
                 cell.appendChild(div);
                 cell.style.textAlign = 'center';
                 cell.style.width = '1px';
@@ -434,9 +436,9 @@ function setTotalDuration(){
                 cell.innerText = totals[cyclei];
 
                 // highlight bad total duration
-                if(totals[cyclei] > beamon + beamoff + 10){
+                if(totals[cyclei] > beamon + beamoff - 10){
                     cell.classList.add('morange');
-                    cell.title ="Total cycle duration must be less than beam on + beam off + 10 seconds";
+                    cell.title ="Total cycle duration must be less than beam on + beam off - 10 seconds";
                 } else {
                     cell.classList.remove('morange');
                     cell.title = "";
@@ -452,12 +454,11 @@ function setTotalDuration(){
 
 /** Prevent editing of cycle in progress and highlight cells */
 function disable_and_highlight_cycle_in_progress(){
-    mjsonrpc_db_get_values([`/Equipment/${NAME}/Settings`]).then(function(rpc){
+    mjsonrpc_db_get_values([`/Equipment/${NAME}/Settings`,
+                            '/Runinfo/State']).then(function(rpc){
         let settings = rpc.result.data[0];
+        let inrun = rpc.result.data[1] !== STATE_STOPPED;
         
-        // TODO: replace with check for incycle flag
-        let incycle = true;
-
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
             for(let periodi=0; periodi<NPERIODS; periodi++){
 
@@ -466,13 +467,13 @@ function disable_and_highlight_cycle_in_progress(){
                 let cell = document.getElementById(`cell_c${cyclei}_p${periodi}`);
                 if(div === null || cell === null) continue;
 
-                if(cyclei == settings.currentcycle && incycle){
+                if(cyclei == settings.currentcycle && inrun){
                     div.setAttribute('data-odb-editable', `0`);
                 } else {
                     div.setAttribute('data-odb-editable', `1`);
                 }
 
-                if(cyclei == settings.currentcycle && periodi == settings.currentperiod && incycle){
+                if(cyclei == settings.currentcycle && periodi == settings.currentperiod && inrun){
                     cell.classList.add("mgreen");
                 } else {
                     cell.classList.remove("mgreen");
@@ -485,7 +486,7 @@ function disable_and_highlight_cycle_in_progress(){
             let cell = document.getElementById(`cycle_${cyclei}`);
             if(cell === null) continue;
 
-            if(cyclei == settings.currentcycle && incycle){
+            if(cyclei == settings.currentcycle && inrun){
                 cell.classList.add("mgreen");
             } else {
                 cell.classList.remove("mgreen");
@@ -497,10 +498,27 @@ function disable_and_highlight_cycle_in_progress(){
             let cell = document.getElementById(`period_${periodi}`);
             if(cell === null) continue;
 
-            if(periodi == settings.currentperiod && incycle){
+            if(periodi == settings.currentperiod && inrun){
                 cell.classList.add("mgreen");
             } else {
                 cell.classList.remove("mgreen");
+            }
+        }
+
+        // Disable / enable period checkboxes and valve checkboxes
+        if(inrun){
+            for(let periodi=0; periodi<NPERIODS; periodi++){
+                document.getElementById(`checkbox_period_${periodi}`).setAttribute("disabled", "");
+                for(let valvei=0; valvei<NVALVES; valvei++){
+                    document.getElementById(`checkbox_valve_${valvei}_${periodi}`).setAttribute("disabled", "");
+                }
+            }
+        } else {
+            for(let periodi=0; periodi<NPERIODS; periodi++){
+                document.getElementById(`checkbox_period_${periodi}`).removeAttribute("disabled");
+                for(let valvei=0; valvei<NVALVES; valvei++){
+                    document.getElementById(`checkbox_valve_${valvei}_${periodi}`).removeAttribute("disabled");
+                }
             }
         }
 

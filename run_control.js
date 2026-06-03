@@ -36,7 +36,7 @@ function populate_run_control(){
                 odb_value = document.createElement('span');
                 odb_value.className = "modbvalue";
             }
-            
+            odb_value.id = `edit_on_start_${key}`;
             odb_value.setAttribute("data-odb-editable", "1");
             odb_value.setAttribute("data-odb-path", `/Experiment/Edit on start/${key}`);
             
@@ -88,6 +88,12 @@ function update_run_control(){
             banner.classList.remove("mred");
             banner.classList.remove("myellow");
 
+            // disable write / run with seq
+            let check = document.getElementById('edit_on_start_write data');
+            check.setAttribute('disabled', '');
+            check = document.getElementById('edit_on_start_run with sequencer');
+            check.setAttribute('disabled', '');
+
         } else if (runinfo.state === STATE_PAUSED) {
             
             // button
@@ -103,6 +109,12 @@ function update_run_control(){
             // button2.innerText = 'Resume Run';
             // button1.onclick = () => mhttpd_resume_run('&Return=custom&page=Sequencer26');
             // cell.appendChild(button2);
+
+            // disable write / run with seq
+            let check = document.getElementById('edit_on_start_write data');
+            check.setAttribute('disabled', '');
+            check = document.getElementById('edit_on_start_run with sequencer');
+            check.setAttribute('disabled', '');
             
         } else if (runinfo.state === STATE_STOPPED) {
             
@@ -115,6 +127,12 @@ function update_run_control(){
             banner.classList.add("mred");
             banner.classList.remove("mgreen");
             banner.classList.remove("myellow");
+
+            // enable write / run with seq
+            let check = document.getElementById('edit_on_start_write data');
+            check.removeAttribute('disabled');
+            check = document.getElementById('edit_on_start_run with sequencer');
+            check.removeAttribute('disabled');
         }
 
     }).catch(function(error) {

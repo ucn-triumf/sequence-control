@@ -56,9 +56,10 @@
       <td style="width: 250px;">Use external (hardware) trigger</td>
       <td style="text-align: center;">
         <input type="checkbox" 
+              id="use_external_trigger"
               class="modbcheckbox" 
-              odb-data-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
-              odb-data-editable="1"></input>
+              data-odb-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
+              data-odb-editable="1"></input>
       </td>
     </tr>
     <tr>
@@ -66,8 +67,8 @@
       <td style="text-align: center;">
         <input type="checkbox" 
               class="modbcheckbox" 
-              odb-data-path="/Equipment/UCNSequencer26/Settings/StopAtCycleEnd" 
-              odb-data-editable="1"></input>
+              data-odb-path="/Equipment/UCNSequencer26/Settings/StopAtCycleEnd" 
+              data-odb-editable="1"></input>
       </td>
     </tr>
     <tr>
@@ -75,8 +76,8 @@
       <td style="text-align: center;">
         <input type="checkbox" 
               class="modbcheckbox" 
-              odb-data-path="/Equipment/UCNSequencer26/Settings/StopAtSupercycleEnd" 
-              odb-data-editable="1"></input>
+              data-odb-path="/Equipment/UCNSequencer26/Settings/StopAtSupercycleEnd" 
+              data-odb-editable="1"></input>
       </td>
     </tr>
   </table>
@@ -87,7 +88,7 @@
       <th colspan="2" height="30px" class="mtableheader">Beam Status</th>
     </tr>
     <tr>
-      <th colspan="2" height="20px" id="beamline_status"></th>
+      <td colspan="2" height="20px" style="text-align: center;" id="beamline_status"></td>
     </tr>
     <tr>
       <td style="width: 250px;">BL1 Extraction Current:</td>

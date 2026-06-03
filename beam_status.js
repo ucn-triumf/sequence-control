@@ -1,4 +1,11 @@
 function update_beam_status(){
+
+    // TODO: remove following on production code
+    let cell = document.getElementById('beamline_status');
+    cell.classList.add("mred");
+    cell.innerText = 'UCN beamline disabled (septum or B0 are off)';
+
+    return;
     // path to epics logging equipment
     mjsonrpc_db_get_values(["/Equipment/BeamlineEpics/Settings/Names",
                             "/Equipment/BeamlineEpics/Variables/Measured"]).then(function(rpc) {
@@ -15,11 +22,11 @@ function update_beam_status(){
         if(beam['B1U:SEPT:STATON'] && beam['B1U:B0:STATON']){
             cell.classList.add("mgreen");
             cell.classList.remove("mred");
-            cell.innerText = 'UCN beamline enabled (septum/BO are on)';
+            cell.innerText = 'UCN beamline enabled (septum \& B0 are on)';
         } else {
             cell.classList.add("mred");
             cell.classList.remove("mgreen");
-            cell.innerText = 'UCN beamline disabled (septum or BO are off)';
+            cell.innerText = 'UCN beamline disabled (septum or B0 are off)';
         }
 
         // Set values

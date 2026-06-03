@@ -11,14 +11,14 @@ function setup(){
     // draw elements in base webpage
     populate_run_control();
     populate_timings();
-    // update_beam_status(); // missing epics variables
+    update_beam_status();
     update_seq_status();
     update_seq_control();
 
     // update every 1 second
     setInterval(update_run_control, 1000);
     setInterval(setTotalDuration, 1000);
-    // setInterval(update_beam_status, 1000); // missing epics variables
+    // setInterval(update_beam_status, 1000); 
     setInterval(update_seq_status, 1000);
     setInterval(update_seq_control, 1000);
     setInterval(disable_and_highlight_cycle_in_progress, 1000);
