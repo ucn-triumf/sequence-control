@@ -227,7 +227,6 @@ async function _save_preset(preset_name) {
         if (s !== 1 && s !== 311)
             throw new Error(`db_create failed for ${create_items[i].path}, status ${s}`);
     }
-
     await mjsonrpc_db_paste(paste_paths, paste_values);
 }
 
@@ -264,8 +263,7 @@ async function _load_preset(preset_name) {
     // Write preset values into Settings using leaf paths
     let set_paths = PRESET_KEYS.filter(k => k in preset).map(k => `${base}/${k}`);
     let set_values = PRESET_KEYS.filter(k => k in preset).map(k => preset[k]);
-    let req = mjsonrpc_make_request('db_paste', {paths: set_paths, values: set_values});
-    await mjsonrpc_send_request([req]);
+    await mjsonrpc_db_paste(set_paths, set_values);
 
     // Redraw the timing/valve table
     populate_timings();
