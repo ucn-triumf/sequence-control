@@ -10,6 +10,7 @@
   <script src="sequencer-control/period_timings.js"></script>
   <script src="sequencer-control/beam_status.js"></script>
   <script src="sequencer-control/sequencer_status.js"></script>
+  <script src="sequencer-control/sequencer_control.js"></script>
   <script src="sequencer-control/setup.js"></script>
   <title>Sequencer26</title>
 </head>
@@ -34,20 +35,49 @@
     <tr>
       <th colspan="2" height="30px" class="mtableheader">Run Control</th>
       <tr>
-        <td id="run_control_status" colspan="2" style="text-align: center;"></td>
+        <td id="run_control_status" height="20px" colspan="2" style="text-align: center;"></td>
       </tr>
       <tbody id="tbl_run_control"></tbody>
       <tr>
-        <td>External (Hardware) Trigger</td>
-        <td style="text-align: center;">
-          <input type="checkbox" 
-                class="modbcheckbox" 
-                odb-data-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
-                odb-data-editable="1"></input></td>
-      </tr>
-      <tr>
         <td id="run_control_buttoncell" colspan="2" style="text-align: center;"></td>
       </tr>
+    </tr>
+  </table>
+
+  <!-- Sequencer control -->
+  <table class="mtable" style="flex: 1;">
+    <tr>
+      <th id="seq_header" height="30px" class="mtableheader" colspan="2">Sequencer Control</th>
+    </tr>
+    <tr>
+      <td id="seq_control_status" height="20px" colspan="2" style="text-align: center;"></td>
+    </tr>
+    <tr>
+      <td>Use external (hardware) trigger</td>
+      <td style="text-align: center;">
+        <input type="checkbox" 
+              class="modbcheckbox" 
+              odb-data-path="/Equipment/UCNSequencer26/Settings/HardwareTrigger" 
+              odb-data-editable="1"></input>
+      </td>
+    </tr>
+    <tr>
+      <td>Stop after current cycle</td>
+      <td style="text-align: center;">
+        <input type="checkbox" 
+              class="modbcheckbox" 
+              odb-data-path="/Equipment/UCNSequencer26/Settings/StopAtCycleEnd" 
+              odb-data-editable="1"></input>
+      </td>
+    </tr>
+    <tr>
+      <td>Stop after current supercycle</td>
+      <td style="text-align: center;">
+        <input type="checkbox" 
+              class="modbcheckbox" 
+              odb-data-path="/Equipment/UCNSequencer26/Settings/StopAtSupercycleEnd" 
+              odb-data-editable="1"></input>
+      </td>
     </tr>
   </table>
 
@@ -57,7 +87,7 @@
       <th colspan="2" height="30px" class="mtableheader">Beam Status</th>
     </tr>
     <tr>
-      <th colspan="2" id="beamline_status"></th>
+      <th colspan="2" height="20px" id="beamline_status"></th>
     </tr>
     <tr>
       <td style="width: 250px;">BL1 Extraction Current:</td>
@@ -91,7 +121,7 @@
       <th colspan="2" height="30px" class="mtableheader">Sequencer Status</th>
     </tr>
     <tr>
-      <td id="seq_status" colspan="2" style="text-align: center;"></td>
+      <td id="seq_status" height="20px" colspan="2" style="text-align: center;"></td>
     </tr>
     <tr>
       <td> In cycle: </td>
@@ -125,7 +155,7 @@
 
 </div><!-- end flex row -->
 
-<!-- Settings in a second row -->
+<!-- Settings in a third row -->
 <div style="display: flex; gap: 1px; width: 100%">
 
   <!-- Settings -->

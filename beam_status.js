@@ -14,9 +14,11 @@ function update_beam_status(){
         let cell = document.getElementById('beamline_status');
         if(beam['B1U:SEPT:STATON'] && beam['B1U:B0:STATON']){
             cell.classList.add("mgreen");
+            cell.classList.remove("mred");
             cell.innerText = 'UCN beamline enabled (septum/BO are on)';
         } else {
             cell.classList.add("mred");
+            cell.classList.remove("mgreen");
             cell.innerText = 'UCN beamline disabled (septum or BO are off)';
         }
 

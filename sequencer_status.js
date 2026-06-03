@@ -1,7 +1,7 @@
 function update_seq_status(){
 
     // request info from ODB
-    let req = [mjsonrpc_make_request('cm_exist', {"name":NAME}),
+    let req = [mjsonrpc_make_request('cm_exist', {"name":"fe_ucnsequencer"}),
                mjsonrpc_make_request('db_get_values', {"paths":[`/Equipment/${NAME}/Settings`]}),
               ];
 
@@ -14,10 +14,12 @@ function update_seq_status(){
 
         // Set status banner
         let cell = document.getElementById('seq_status');
-        if(seq_status){
+        if(seq_status == 1){
             cell.classList.add("mgreen");
+            cell.classList.remove("mred");
             cell.innerText = `${NAME} frontend is running`;
         } else {
+            cell.classList.remove("mgreen");
             cell.classList.add("mred");
             cell.innerText = `${NAME} frontend is NOT running`;
         }

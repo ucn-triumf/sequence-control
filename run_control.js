@@ -69,7 +69,7 @@ function update_run_control(){
         }
 
         let banner = document.getElementById("run_control_status");
-        
+
         // set properties depending on the run state
         if (runinfo.state === STATE_RUNNING) {
             
@@ -85,6 +85,8 @@ function update_run_control(){
             // banner
             banner.innerHTML = `Run ${runinfo["run number"]} in progress`;
             banner.classList.add("mgreen");
+            banner.classList.remove("mred");
+            banner.classList.remove("myellow");
 
         } else if (runinfo.state === STATE_PAUSED) {
             
@@ -95,6 +97,8 @@ function update_run_control(){
             
             banner.innerHTML = `Run ${runinfo["run number"]} paused`;
             banner.classList.add("myellow");
+            banner.classList.remove("mred");
+            banner.classList.remove("mgreen");
 
             // button2.innerText = 'Resume Run';
             // button1.onclick = () => mhttpd_resume_run('&Return=custom&page=Sequencer26');
@@ -109,6 +113,8 @@ function update_run_control(){
 
             banner.innerHTML = `Run ${runinfo["run number"]} finished`;
             banner.classList.add("mred");
+            banner.classList.remove("mgreen");
+            banner.classList.remove("myellow");
         }
 
     }).catch(function(error) {
