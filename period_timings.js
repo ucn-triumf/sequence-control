@@ -117,6 +117,7 @@ function populate_timings(settings = null){
             cell.style.textAlign = 'center';
             cell.style.width = '80px';
             cell.rowSpan = 2;
+            cell.title = `PPG CH${valvei*2+1}`;
         }
 
         // add/remove valve buttons
