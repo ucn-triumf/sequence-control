@@ -574,8 +574,15 @@ function disable_and_highlight_cycle_in_progress(){
         // enable/disable
         for(let name of to_disable){
             let ele = document.getElementById(name);
-            if(inrun)   ele.setAttribute('disabled', '');
-            else        ele.removeAttribute('disabled');
+            if(ele === null) continue;
+
+            // respect minimum-count constraints even when not in run
+            let count_disabled = (name === 'valve_rm_button'  && NVALVES  < 3)
+                               || (name === 'period_rm_button' && NPERIODS < 3)
+                               || (name === 'cycle_rm_button'  && NCYCLES  < 3);
+
+            if(inrun || count_disabled) ele.setAttribute('disabled', '');
+            else                        ele.removeAttribute('disabled');
         }
 
         // editable / uneditable
