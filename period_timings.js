@@ -1,6 +1,6 @@
 
 /** Helper function for making add/rm cycle/period/valve buttons */
-function make_button(img, onclick, disable, title){
+function make_button(img, onclick, disable, title, id){
     button = document.createElement("button");
     button.className = "image-button";
     button.innerHTML = `<img src="icons/${img}" width="15px">`;
@@ -9,6 +9,7 @@ function make_button(img, onclick, disable, title){
     button.style.width = '20px';
     button.disabled = disable;
     button.title = title;
+    button.id = id;
     return button
 }
 
@@ -101,8 +102,16 @@ function populate_timings(settings = null){
         cell = row2.insertCell();
         cell.style.width = '40px';
         cell.rowSpan = 2;
-        cell.appendChild(make_button("chevron-left.svg", rmcycle, NCYCLES<3, "Remove cycle"));
-        cell.appendChild(make_button("chevron-right.svg", addcycle, false, "Add cycle"));
+        cell.appendChild(make_button("chevron-left.svg", 
+                                     rmcycle, 
+                                     NCYCLES<3, 
+                                     "Remove cycle",
+                                     "cycle_rm_button"));
+        cell.appendChild(make_button("chevron-right.svg", 
+                                     addcycle, 
+                                     false, 
+                                     "Add cycle",
+                                    "cycle_add_button"));
 
         // valve ids and names
         for(let valvei=0; valvei < NVALVES; valvei++){
@@ -113,6 +122,7 @@ function populate_timings(settings = null){
             div.className = "modbvalue";
             div.setAttribute('data-odb-path', `/Equipment/${NAME}/Settings/ValveNames[${valvei}]`);
             div.setAttribute('data-odb-editable', `1`);
+            div.id = `valve_name_${valvei}`;
             cell.appendChild(div);
             cell.style.textAlign = 'center';
             cell.style.width = '80px';
@@ -124,8 +134,16 @@ function populate_timings(settings = null){
         cell = row2.insertCell();
         cell.style.width = '40px';
         cell.rowSpan = 2;
-        cell.appendChild(make_button("chevron-left.svg", rmvalve, NVALVES < 3, "Remove valve"))
-        cell.appendChild(make_button("chevron-right.svg", addvalve, false, "Add valve"))
+        cell.appendChild(make_button("chevron-left.svg", 
+                                     rmvalve, 
+                                     NVALVES < 3, 
+                                     "Remove valve",
+                                     "valve_rm_button"))
+        cell.appendChild(make_button("chevron-right.svg", 
+                                     addvalve, 
+                                     false, 
+                                     "Add valve",
+                                     "valve_add_button"))
         
         // populate period durations
         let cellidx_cycle = 0; // cell index in the list
@@ -134,10 +152,12 @@ function populate_timings(settings = null){
 
             row = table.insertRow();
 
-            // header column
+            // header column - period labels
             cell = row.insertCell();
             let label = document.createElement('label');
             label.innerText = `Period ${periodi}`;
+            
+            // period checkbox
             let box = document.createElement('input');
             box.type = 'checkbox';
             box.className = "modbcheckbox";
@@ -146,7 +166,17 @@ function populate_timings(settings = null){
             box.setAttribute('data-odb-editable', `1`);
             box.id = `checkbox_period_${periodi}`;
             label.appendChild(box);
+            
+            // period name
+            let pname = document.createElement('span');
+            pname.className = "modbvalue";
+            pname.setAttribute('data-odb-path',
+                `/Equipment/${NAME}/Settings/PeriodNames[${periodi}]`);
+            pname.setAttribute('data-odb-editable', '1');
+            pname.id = `period_name_${periodi}`;
+            
             cell.appendChild(label);
+            cell.appendChild(pname);
             cell.style.cursor = 'pointer';
             cell.addEventListener('click', (e) => { if (e.target === cell) box.click(); });
             cell.id = `period_${periodi}`;
@@ -169,8 +199,16 @@ function populate_timings(settings = null){
             if(periodi == NPERIODS-2) {
                 cell = row.insertCell();
                 cell.rowSpan = 2;
-                cell.appendChild(make_button("chevron-up.svg", rmperiod, NPERIODS<3, "Remove period"))
-                cell.appendChild(make_button("chevron-down.svg", addperiod, false, "Add period"))
+                cell.appendChild(make_button("chevron-up.svg", 
+                                             rmperiod, 
+                                             NPERIODS<3, 
+                                             "Remove period",
+                                             "period_rm_button"))
+                cell.appendChild(make_button("chevron-down.svg", 
+                                             addperiod, 
+                                             false, 
+                                             "Add period",
+                                             "period_add_button"))
             }
 
             // blank column between buttons and valves (only needed when buttons don't span all rows)
@@ -505,22 +543,46 @@ function disable_and_highlight_cycle_in_progress(){
                 cell.classList.remove("mgreen");
             }
         }
+        
+        // elements to disable / enable elements when in run
+        let to_disable = ['valve_rm_button',
+                          'valve_add_button',
+                          'period_rm_button',
+                          'period_add_button',
+                          'cycle_rm_button',
+                          'load_button',
+                         ];
+        let to_uneditable = [];
 
-        // Disable / enable period checkboxes and valve checkboxes
-        if(inrun){
-            for(let periodi=0; periodi<NPERIODS; periodi++){
-                document.getElementById(`checkbox_period_${periodi}`).setAttribute("disabled", "");
-                for(let valvei=0; valvei<NVALVES; valvei++){
-                    document.getElementById(`checkbox_valve_${valvei}_${periodi}`).setAttribute("disabled", "");
-                }
+        for(let periodi=0; periodi<NPERIODS; periodi++){
+
+            // period checkboxes and names
+            to_disable.push(`checkbox_period_${periodi}`);
+            to_uneditable.push(`period_name_${periodi}`);
+
+            // valve checkboxes
+            for(let valvei=0; valvei<NVALVES; valvei++){
+                to_disable.push(`checkbox_valve_${valvei}_${periodi}`);
             }
-        } else {
-            for(let periodi=0; periodi<NPERIODS; periodi++){
-                document.getElementById(`checkbox_period_${periodi}`).removeAttribute("disabled");
-                for(let valvei=0; valvei<NVALVES; valvei++){
-                    document.getElementById(`checkbox_valve_${valvei}_${periodi}`).removeAttribute("disabled");
-                }
-            }
+        }
+
+        // valve names
+        for(let valvei=0; valvei<NVALVES; valvei++){
+            to_uneditable.push(`valve_name_${valvei}`);
+        }
+
+        // enable/disable
+        for(let name of to_disable){
+            let ele = document.getElementById(name);
+            if(inrun)   ele.setAttribute('disabled', '');
+            else        ele.removeAttribute('disabled');
+        }
+
+        // editable / uneditable
+        for(let name of to_uneditable){
+            let ele = document.getElementById(name);
+            if(inrun)   ele.setAttribute('data-odb-editable', '0');
+            else        ele.setAttribute('data-odb-editable', '1');
         }
 
      }).catch(function(error) {

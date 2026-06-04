@@ -9,7 +9,7 @@
 const PRESET_ODB_PATH = `/Equipment/${NAME}/Presets`;
 
 // ODB keys that define the sequencer configuration (lowercase = how MIDAS returns them)
-const PRESET_KEYS = ['cyclesenabled', 'perioddurations', 'periodsenabled', 'valvenames', 'valvestates'];
+const PRESET_KEYS = ['cyclesenabled', 'perioddurations', 'periodsenabled', 'valvenames', 'valvestates', 'periodnames'];
 
 // TID (type ID) constants from midas.js, needed for db_create
 const _TID_BOOL   = 8;
@@ -22,6 +22,7 @@ const PRESET_KEY_TYPES = {
     perioddurations: {tid: _TID_DOUBLE},
     periodsenabled:  {tid: _TID_BOOL},
     valvenames:      {tid: _TID_STRING, string_length: 64},
+    periodnames:     {tid: _TID_STRING, string_length: 64},
     valvestates:     {tid: _TID_BOOL},
 };
 
