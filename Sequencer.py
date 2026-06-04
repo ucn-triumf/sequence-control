@@ -89,9 +89,10 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         ("CyclesEnabled", [True]*10),
         ("PeriodsEnabled", [True]*5),
         ("PeriodDurations", [0.0]*50),      # interleaved [period0_cycle{0-n} period1_cycle{0-n}]
-        ("ValveStates", [False]*NVALVES*5),     # interleaved [period0_valve{0-n} period1_valve{0-n}]
+        ("ValveStates", [False]*NVALVES*5), # interleaved [period0_valve{0-n} period1_valve{0-n}]
                                             # 1 = energized (open for normally closed valves)
         ("ValveNames", [""]*NVALVES),
+        ("PeriodNames", [""]*5),
         ("CurrentCycle", 0),
         ("CurrentPeriod", 0),
         ("CurrentSupercycle", 0),

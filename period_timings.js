@@ -134,10 +134,12 @@ function populate_timings(settings = null){
 
             row = table.insertRow();
 
-            // header column
+            // header column - period labels
             cell = row.insertCell();
             let label = document.createElement('label');
             label.innerText = `Period ${periodi}`;
+            
+            // period checkbox
             let box = document.createElement('input');
             box.type = 'checkbox';
             box.className = "modbcheckbox";
@@ -146,7 +148,16 @@ function populate_timings(settings = null){
             box.setAttribute('data-odb-editable', `1`);
             box.id = `checkbox_period_${periodi}`;
             label.appendChild(box);
+            
+            // period name
+            let pname = document.createElement('span');
+            pname.className = "modbvalue";
+            pname.setAttribute('data-odb-path',
+                `/Equipment/${NAME}/Settings/PeriodNames[${periodi}]`);
+            pname.setAttribute('data-odb-editable', '1');
+            
             cell.appendChild(label);
+            cell.appendChild(pname);
             cell.style.cursor = 'pointer';
             cell.addEventListener('click', (e) => { if (e.target === cell) box.click(); });
             cell.id = `period_${periodi}`;
