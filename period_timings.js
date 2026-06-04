@@ -275,18 +275,20 @@ async function addcycle(){
     let ncycles = settings.cyclesenabled.length;
     let nperiods = dur.length / ncycles;
 
-    // copy the period durations, inserting zero at the end of each cycle
+    // copy the period durations, inserting previous duration at the end of each cycle
     let newdur = [];
     let cyclei = 0;
+    let old_d = 0;
     for(let d of dur){
         if(cyclei < ncycles){
             newdur.push(d);
             cyclei++;
         } else {
-            newdur.push(0);     // add new cycle
+            newdur.push(old_d);     // add new cycle
             newdur.push(d);     // make sure to keep the data for the next one
             cyclei = 1;         // we pushed d in the last step, now cycle is 1
         }
+        old_d = d;  // track old durations 
     }
     newdur.push(0);
 

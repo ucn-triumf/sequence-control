@@ -105,6 +105,9 @@ function _show_file_dialog(is_save) {
         background: is_save ? 'white' : '#f0f0f0',
     });
 
+    // Allow keypress "return" to save/load files
+    name_input.addEventListener("keyup", _click_submit); 
+
     // Allow clicking a saved preset to populate the save name field too
     dialog.appendChild(name_input);
 
@@ -129,6 +132,8 @@ function _show_file_dialog(is_save) {
         let p = is_save ? _save_preset(preset_name) : _load_preset(preset_name);
         p.then(() => overlay.remove()).catch(err => mjsonrpc_error_alert(err));
     };
+    action.id = "save_load_button";
+
     btn_row.appendChild(action);
     dialog.appendChild(btn_row);
 
@@ -179,6 +184,7 @@ function _populate_preset_list(container, name_input) {
                 container.querySelectorAll('div').forEach(el => el.style.background = '');
                 row.style.background = '#c0c0ff';
                 name_input.value = preset_name;
+                name_input.focus();
             });
             container.appendChild(row);
         }
@@ -188,6 +194,13 @@ function _populate_preset_list(container, name_input) {
     });
 }
 
+/** Click the save/load button when Enter key is pressed - use with addEventListener */
+function _click_submit(event){
+    if (event.key === "Enter") {
+        event.preventDefault(); // Cancel the default action, if needed
+        document.getElementById("save_load_button").click();   // Trigger the button element with a click
+    }
+}
 
 /** Read current settings from ODB and write them as a named preset.
  *
@@ -230,7 +243,6 @@ async function _save_preset(preset_name) {
     }
     await mjsonrpc_db_paste(paste_paths, paste_values);
 }
-
 
 /** Load a named preset from ODB and apply it to the live Settings, resizing arrays as needed.
  *
