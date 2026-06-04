@@ -416,11 +416,12 @@ async function addperiod(){
     let basepath = `/Equipment/${NAME}/Settings`;
     let paths = [`${basepath}/ValveStates`,
                  `${basepath}/PeriodDurations`,
-                 `${basepath}/PeriodsEnabled`];
-    
+                 `${basepath}/PeriodsEnabled`,
+                 `${basepath}/PeriodNames`];
+
     // resize
     NPERIODS++;
-    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS];
+    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS, NPERIODS];
     await mjsonrpc_db_resize(paths, sizes);
     
     // redraw the table
@@ -435,10 +436,11 @@ async function rmperiod(){
 
     let paths = [`${basepath}/ValveStates`,
                  `${basepath}/PeriodDurations`,
-                 `${basepath}/PeriodsEnabled`];
+                 `${basepath}/PeriodsEnabled`,
+                 `${basepath}/PeriodNames`];
 
     NPERIODS--;
-    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS];
+    let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS, NPERIODS];
 
     // Redraw before resizing ODB — removes stale modbcheckbox/modbvalue elements so MIDAS
     // polling doesn't try to read truncated array indices after the resize.
