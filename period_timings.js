@@ -328,12 +328,16 @@ async function rmcycle(){
     NCYCLES = ncycles - 1;
     let paths = [`${basepath}/CyclesEnabled`, `${basepath}/PeriodDurations`];
     let sizes = [NCYCLES, NCYCLES * nperiods];
-    await mjsonrpc_db_resize(paths, sizes);
-    await mjsonrpc_db_set_value(paths[1], newdur);
 
+    // Redraw table before resizing ODB — populate_timings synchronously clears the old tbody,
+    // removing modbcheckbox elements at stale CyclesEnabled[N] paths. Without this, MIDAS
+    // polling can fire between the resize and the repopulate and fail with "index exceeds array length".
     populate_timings({...settings,
         cyclesenabled: settings.cyclesenabled.slice(0, NCYCLES),
         perioddurations: newdur});
+
+    await mjsonrpc_db_resize(paths, sizes);
+    await mjsonrpc_db_set_value(paths[1], newdur);
 }
 
 /** expand valve list by one */
@@ -397,12 +401,13 @@ async function rmvalve(){
     NVALVES = nvalves - 1;
     let paths = [`${basepath}/ValveNames`, `${basepath}/ValveStates`];
     let sizes = [NVALVES, NVALVES * nperiods];
-    await mjsonrpc_db_resize(paths, sizes);
-    await mjsonrpc_db_set_value(paths[1], newdur);
 
     populate_timings({...settings,
         valvenames: settings.valvenames.slice(0, NVALVES),
         valvestates: newdur});
+
+    await mjsonrpc_db_resize(paths, sizes);
+    await mjsonrpc_db_set_value(paths[1], newdur);
 }
 
 /** expand period list by one */
@@ -424,19 +429,27 @@ async function addperiod(){
 
 /** reduce period list by one */
 async function rmperiod(){
-    // get paths
     let basepath = `/Equipment/${NAME}/Settings`;
+    let rpc = await mjsonrpc_db_get_values([basepath]);
+    let settings = rpc.result.data[0];
+
     let paths = [`${basepath}/ValveStates`,
                  `${basepath}/PeriodDurations`,
-                `${basepath}/PeriodsEnabled`];
-    
-    // resize
+                 `${basepath}/PeriodsEnabled`];
+
     NPERIODS--;
     let sizes = [NVALVES*NPERIODS, NCYCLES*NPERIODS, NPERIODS];
+
+    // Redraw before resizing ODB — removes stale modbcheckbox/modbvalue elements so MIDAS
+    // polling doesn't try to read truncated array indices after the resize.
+    populate_timings({...settings,
+        periodsenabled:  settings.periodsenabled.slice(0, NPERIODS),
+        perioddurations: settings.perioddurations.slice(0, NCYCLES * NPERIODS),
+        valvestates:     settings.valvestates.slice(0, NVALVES * NPERIODS),
+        periodnames:     settings.periodnames.slice(0, NPERIODS),
+    });
+
     await mjsonrpc_db_resize(paths, sizes);
-    
-    // redraw the table
-    populate_timings();
 }
 
 /** Calculate the total duration of each cycle */
