@@ -85,6 +85,7 @@ function populate_timings(settings = null){
             div.className = "modbcheckbox";
             div.setAttribute('data-odb-path', `/Equipment/${NAME}/Settings/CyclesEnabled[${cyclei}]`);
             div.setAttribute('data-odb-editable', `1`);
+            div.id = `cycle_checkbox_${cyclei}`;
             cell.appendChild(div);
             cell.style.textAlign = 'center';
             cell.style.cursor = 'pointer';
@@ -459,15 +460,17 @@ function setTotalDuration(){
     if(NCYCLES === 0) return;  // globals not yet initialized; avoid division by zero
 
     
-    let paths = [`/Equipment/${NAME}/Settings/PeriodDurations`];
+    let paths = [`/Equipment/${NAME}/Settings/PeriodDurations`,
+                 `/Equipment/${NAME}/Settings/PeriodsEnabled`];
     mjsonrpc_db_get_values(paths).then(function(rpc){
         
         // TODO: get kicker settings
         let beamon = 60;
         let beamoff = 240;
 
-        // period durations
+        // get data from rpc call
         let durations = rpc.result.data[0];
+        let enabled = rpc.result.data[1];
 
         // derive NPERIODS from fetched length to avoid reading stale globals during a resize
         let nperiods = Math.floor(durations.length / NCYCLES);
@@ -480,11 +483,14 @@ function setTotalDuration(){
         let idx = 0;
 
         for(let periodi=0; periodi<nperiods; periodi++){
+
+            if(!enabled[periodi]) continue;
+
             for(let cyclei=0; cyclei<NCYCLES; cyclei++){
                 totals[cyclei] += durations[idx++];
             }
         }
-        
+
         // Set totals
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
             let cell = document.getElementById(`total_duration_${cyclei}`);
@@ -495,6 +501,11 @@ function setTotalDuration(){
                 if(totals[cyclei] > beamon + beamoff - 10){
                     cell.classList.add('morange');
                     cell.title ="Total cycle duration must be less than beam on + beam off - 10 seconds";
+
+                    // disable checkbox
+                    mjsonrpc_db_set_value(`/Equipment/${NAME}/Settings/CyclesEnabled[${cyclei}]`,
+                                          false);
+
                 } else {
                     cell.classList.remove('morange');
                     cell.title = "";

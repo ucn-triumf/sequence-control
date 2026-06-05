@@ -98,6 +98,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         ("CurrentSupercycle", 0),
         ("StopAtCycleEnd", False),
         ("StopAtSupercycleEnd", False),
+        ("StopAtSupercycleN", -1),
     ])
 
     def __init__(self, client):
