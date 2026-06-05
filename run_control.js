@@ -75,7 +75,7 @@ function update_run_control(){
             
             // button
             button1.innerText = 'Stop Run';
-            button1.onclick = () => mhttpd_stop_run('&Return=custom&page=Sequencer26');
+            button1.onclick = () => stop_run();
             cell.appendChild(button1);
             
             // button2.innerText = 'Pause Run';
@@ -98,7 +98,7 @@ function update_run_control(){
             
             // button
             button1.innerText = 'Stop Run';
-            button1.onclick = () => mhttpd_stop_run('&Return=custom&page=Sequencer26');
+            button1.onclick = () => stop_run();
             cell.appendChild(button1);
             
             banner.innerHTML = `Run ${runinfo["run number"]} paused`;
@@ -120,7 +120,7 @@ function update_run_control(){
             
             // button
             button1.innerText = 'Start Run';
-            button1.onclick = () => mhttpd_start_run('&Return=custom&page=Sequencer26');
+            button1.onclick = () => start_run(true);
             cell.appendChild(button1);
 
             banner.innerHTML = `Run ${runinfo["run number"]} finished`;
@@ -139,4 +139,51 @@ function update_run_control(){
         mjsonrpc_error_alert(error);
     });
 
+}
+
+/** Start run, confirming run title and experiment number */
+async function start_run(isok, param){
+
+    // get run parameters
+    if(param === undefined){
+        let rpc = await mjsonrpc_db_get_values(['/Experiment/Edit on start']);
+        edit_on_start = rpc.result.data[0];
+        var id = 0;
+    } else {
+        var edit_on_start = param[0];
+        var id = param[1];
+    }
+
+    if(isok){
+        switch(id){
+            // confirm title
+            case 0:
+                dlgConfirm(`Confirm RUN TITLE: "${edit_on_start['run title']}"`,
+                    start_run,
+                    [edit_on_start, id+1]);
+                break;
+            
+            // confirm exp
+            case 1:
+                dlgConfirm(`Confirm EXPERIMENT NUMBER: "${edit_on_start['experiment number']}"`,
+                    start_run,
+                    [edit_on_start, id+1]);
+                break;
+            
+            // start the run
+            case 2:
+                mhttpd_start_run('&Return=custom&page=Sequencer26');
+        }
+    }
+}
+
+/** stop run with end-of-run comment prompt */
+async function stop_run(){
+    dlgQuery("Enter end-of-run comment:", "", 
+        async (val)=>{
+            if(val != false){
+                await mjsonrpc_db_paste(["/Experiment/Edit on start/end_of_run_comment"], [val]);
+                mhttpd_stop_run('&Return=custom&page=Sequencer26');
+            }
+        });
 }
