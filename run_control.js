@@ -146,8 +146,10 @@ async function start_run(isok, param){
 
     // get run parameters
     if(param === undefined){
-        let rpc = await mjsonrpc_db_get_values(['/Experiment/Edit on start']);
+        let rpc = await mjsonrpc_db_get_values(['/Experiment/Edit on start',
+                                                '/Runinfo']);
         edit_on_start = rpc.result.data[0];
+        edit_on_start["run number"] = rpc.result.data[1]["run number"];
         var id = 0;
     } else {
         var edit_on_start = param[0];
@@ -182,8 +184,26 @@ async function start_run(isok, param){
                 break;
 
             // start the run
+            // logic borrowed from start.html
             case 3:
-                mhttpd_goto_page("Transition", '&Return=custom&page=Sequencer26');
+
+                // transition parameters
+                let tr_params = {};
+                tr_params.transition = "TR_START";
+                if(edit_on_start['run number'])
+                    tr_params.run_number = parseInt(edit_on_start['run number'])+1;
+                
+                // initiate transition to run start
+                mjsonrpc_call("cm_transition", tr_params).then(function (rpc){
+                    if (rpc.result.status != 1) {
+                        throw new Error("Cannot start run, cm_transition() status " + rpc.result.status + ", see MIDAS messages");
+                    }
+                    mhttpd_goto_page("Transition", '&Return=custom&page=Sequencer26');
+                    
+                }).catch(function (error) {
+                    document.getElementById("dlgErrorText").innerHTML = mjsonrpc_decode_error(error);
+                    dlgShow('dlgError');
+                });
         }
     }
 }
