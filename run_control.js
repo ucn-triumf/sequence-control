@@ -17,7 +17,7 @@ function populate_run_control(){
         for(key of Object.keys(values)){
             
             // don't print */key values
-            if(key.includes("/key")){
+            if(key.includes("/key") || key == "end_of_run_comment"){
                 continue;
             }
 
@@ -160,19 +160,30 @@ async function start_run(isok, param){
             case 0:
                 dlgConfirm(`Confirm RUN TITLE: "${edit_on_start['run title']}"`,
                     start_run,
-                    [edit_on_start, id+1]);
+                    [edit_on_start, 1]);
                 break;
             
             // confirm exp
             case 1:
+
+                // check if write data false
+                let next_id = edit_on_start["write data"] ? 3 : 2;
+
                 dlgConfirm(`Confirm EXPERIMENT NUMBER: "${edit_on_start['experiment number']}"`,
                     start_run,
-                    [edit_on_start, id+1]);
+                    [edit_on_start, next_id]);
                 break;
-            
+
+            // confirm write data
+            case 2: 
+                dlgConfirm(`Continue with NO WRITTEN DATA?`,
+                    start_run,
+                    [edit_on_start, 3]);
+                break;
+
             // start the run
-            case 2:
-                mhttpd_start_run('&Return=custom&page=Sequencer26');
+            case 3:
+                mhttpd_goto_page("Transition", '&Return=custom&page=Sequencer26');
         }
     }
 }
@@ -181,7 +192,7 @@ async function start_run(isok, param){
 async function stop_run(){
     dlgQuery("Enter end-of-run comment:", "", 
         async (val)=>{
-            if(val != false){
+            if(val != false || val == ""){
                 await mjsonrpc_db_paste(["/Experiment/Edit on start/end_of_run_comment"], [val]);
                 mhttpd_stop_run('&Return=custom&page=Sequencer26');
             }
