@@ -90,6 +90,7 @@ function populate_timings(settings = null){
             cell.style.textAlign = 'center';
             cell.style.cursor = 'pointer';
             cell.addEventListener('click', (e) => { if (e.target !== div) div.click(); });
+            cell.id = `cycle_checkbox_cell${cyclei}`;
 
             // id
             cell = row3.insertCell();
@@ -494,18 +495,37 @@ function setTotalDuration(){
         // Set totals
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
             let cell = document.getElementById(`total_duration_${cyclei}`);
+            let checkbox_cell = document.getElementById(`cycle_checkbox_cell${cyclei}`);
             if(cell != null){
                 cell.innerText = totals[cyclei];
+
+                 // fade checkbox cell to grey
+                if(checkbox_cell.style.backgroundColor === "var(--myellow)"){
+                    checkbox_cell.style.setProperty("-webkit-transition", 
+                        "background-color 3s", 
+                        "");
+                    checkbox_cell.style.setProperty("transition", 
+                        "background-color 3s", 
+                        "");    
+                    checkbox_cell.style.backgroundColor = "";
+                } else {
+                    checkbox_cell.style.removeProperty("-webkit-transition");
+                    checkbox_cell.style.removeProperty("transition");
+                }
 
                 // highlight bad total duration
                 if(totals[cyclei] > beamon + beamoff - 10){
                     cell.classList.add('morange');
                     cell.title ="Total cycle duration must be less than beam on + beam off - 10 seconds";
-
+                    
+                    // flash yellow
+                    if(document.getElementById(`cycle_checkbox_${cyclei}`).checked){
+                        checkbox_cell.style.backgroundColor = "var(--myellow)";
+                    } 
+                    
                     // disable checkbox
                     mjsonrpc_db_set_value(`/Equipment/${NAME}/Settings/CyclesEnabled[${cyclei}]`,
-                                          false);
-
+                                          false);                    
                 } else {
                     cell.classList.remove('morange');
                     cell.title = "";
