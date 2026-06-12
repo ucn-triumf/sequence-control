@@ -187,49 +187,56 @@ class PPG_Mock(object):
     """
 
     BASE_ADDR = 0x00c00000
-      
+    DEBUG_MSG = False
+
+
     def __init__(self):
-        print('PPG init')
+        self.print('PPG init')
         self.t0 = 0
 
+    def print(self, *args, **kwargs):
+        if self.DEBUG_MSG:
+            print(*args, **kwargs)
+
     def _set_command(self, idx:int, mask_high=None, mask_low=None, delay_10ns=None, instr=None):
-        print(f'PPG._set_command(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_10ns={delay_10ns}, instr={instr})')
+        self.print(f'PPG._set_command(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_10ns={delay_10ns}, instr={instr})')
 
     def start(self):
-        print('PPG.start()')
+        self.print('PPG.start()')
         self.t0 = time.monotonic()
 
     def reset(self):
-        print('PPG.reset()')
+        self.print('PPG.reset()')
         self.t0 = 0
 
     def halt(self, idx:int):
-        print(f'PPG.halt(idx={idx})')
+        self.print(f'PPG.halt(idx={idx})')
         self.t0 = 0
 
     def hold(self, idx:int, mask_high:int, mask_low:int, delay_ns:int):
-        print(f'PPG.hold(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_ns={delay_ns})')
+        self.print(f'PPG.hold(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_ns={delay_ns})')
 
     def mark_loop_start(self, idx:int, nloops:int):
-        print(f'PPG.mark_loop_start(idx={idx}, nloops={nloops})')
+        self.print(f'PPG.mark_loop_start(idx={idx}, nloops={nloops})')
 
     def mark_loop_end(self, idx:int):
-        print(f'PPG.mark_loop_end(idx={idx})')
+        self.print(f'PPG.mark_loop_end(idx={idx})')
 
     def subroutine_call(self, idx:int, addr:int):
-        print(f'PPG.subroutine_call(idx={idx}, addr={addr})')
+        self.print(f'PPG.subroutine_call(idx={idx}, addr={addr})')
 
     def subroutine_return(self, idx:int):
-        print(f'PPG.subroutine_return(idx={idx})')
+        self.print(f'PPG.subroutine_return(idx={idx})')
 
     def branch(self, idx:int, addr:int):
-        print(f'PPG.branch(idx={idx}, addr={addr})')
+        self.print(f'PPG.branch(idx={idx}, addr={addr})')
 
     def set_internal_trigger(self):
-        print(f'PPG.set_internal_trigger()')
+        self.print(f'PPG.set_internal_trigger()')
 
     def set_external_trigger(self):
-        print(f'PPG.set_external_trigger()')
+        self.print(f'PPG.set_external_trigger()')
+        self.t0 = time.monotonic() # "trigger" immediately
 
     @property
     def is_running(self):
