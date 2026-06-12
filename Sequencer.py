@@ -2,7 +2,7 @@
 # Derek Fujimoto
 # May 2026
 
-import PPG
+from PPG import PPG_Mock as PPG # testing
 import time
 import midas
 import midas.frontend
@@ -108,21 +108,15 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         """
 
         # initialize connection to PPG via VME crate
-        # self.ppg = PPG.PPG()
+        self.ppg = PPG()
 
         # for messaging and reading ODB
         self.client = client
 
-        # global variables # TODO: These may need fixing / readback
-        self.enabled = False            # enable flag
-        self.external_trigger = True    # use external (hardware) trigger
-        self.nperiods = 0               # number of periods in cycle
-        self.ncycles = 0                # number cycles in supercycle
-        self.durations = [[]]           # [cycle][period] duration in s
-        self.cyclei = 0                 # cycle index
-        self.supcyclei = 0              # super cycle index
-        self.valve_open = [False] * self.NVALVES
-        self.time_last_print = 0        # time of last message print
+        # flag to wait for trigger - handles the case where we set the next 
+        # cycle, are not running, but wait a long time for the next trigger to 
+        # arrive
+        self.waiting_for_trigger = False
 
         default_common = midas.frontend.InitialEquipmentCommon()
         default_common.equip_type = midas.EQ_PERIODIC
@@ -136,6 +130,9 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # You MUST call midas.frontend.EquipmentBase.__init__ in your equipment's __init__ method!
         midas.frontend.EquipmentBase.__init__(self, client, self.NAME, default_common, self.DEFAULT_SETTINGS)
+
+        # disable enable - prevent ppg programming after crash
+        self.set('Enable', False)
 
     def detailed_settings_changed_func(self, path, idx, new_value):
         """
@@ -196,13 +193,15 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # Wait for the sequence to finish
         t0 = time.monotonic()
         while self.ppg.is_running:
-            if time.monotonic()-t0 < 10:
+            if time.monotonic()-t0 > 10:
                 raise TimeoutError("PPG hung in do_timing_sequence")
             time.sleep(0.1)
 
     def exit(self):
         """Stop PPG on exit"""
+        self.set('Enabled', False)
         self.ppg.reset()
+        self.ppg.halt(0)
         self.ppg.set_internal_trigger()
 
     def set_ppg_sequence_cycle(self):
@@ -212,12 +211,21 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         self.ppg.reset()
 
         # sequencer disabled... halt and set internal trigger status
-        if not self.enabled:
+        if not self.settings['Enabled']:
             self.ppg.set_internal_trigger()
             self.ppg.halt(0)
-            print('Sequencer disabled')
+            self.client.msg('Sequencer disabled')
             return
         
+        # some constants from the ODB - don't allow changes mid-programming of the PPG
+        period_durations = self.settings['PeriodDurations']
+        period_enabled = self.settings['PeriodsEnabled']
+        nperiods = len(period_enabled)
+        ncycles = len(self.settings['CyclesEnabled'])
+        current_cycle = self.settings['CurrentCycle']
+        valve_open = self.settings['ValveStates']
+        valve_names = self.settings['ValveNames']
+
         # Set the first command to halt program. This ensures that if the 
         # sequence gets immediately triggered when we set to external trigger, 
         # then there will be a blank sequence to execute. If we don't do this, 
@@ -238,11 +246,17 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # track number of periods and times
         valid_periods = 0
         times = []
+
+        print(f'Cycle {current_cycle}')
         
-        for periodi in range(self.nperiods):
+        for periodi in range(nperiods):
+
+            # skip disabled periods
+            if not period_enabled[periodi]:
+                continue
 
             # period duration in seconds
-            duration = self.durations[self.cyclei][periodi]
+            duration = period_durations[periodi * ncycles + current_cycle]
 
             # skip zero duration periods
             if duration < 0.1:
@@ -251,12 +265,13 @@ class UCNSequencer(midas.frontend.EquipmentBase):
             # Figure out which valves are enabled.  For each open valve we set 
             # two outlets high.
             enabled_outputs = 0
-            for i in range(self.NVALVES):
-                if self.valve_open[i]:
-                    enabled_outputs += (0x3) << i*2
+            nvalves = len(valve_names)
+            for valvei in range(nvalves):
+                if valve_open[valvei * nvalves + periodi]:
+                    enabled_outputs += (0x3) << valvei*2
 
             # Add another output signal which indicates which period we are in.
-            enabled_outputs += (0x1) << (16+i)
+            enabled_outputs += (0x1) << (16+periodi)
 
             # Now write the actual commands to open/close valves
             # Looping to get around 32-bit limitation in max limit per command 
@@ -289,30 +304,70 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # Set trigger source to inititate the sequence, arming the sequence for 
         # execution on next trigger 
-        if self.external_trigger:
+        if self.hardware_trigger:
             self.ppg.set_external_trigger()
+
         else:
             self.ppg.set_internal_trigger()
 
         #### PPG SEQUENCE END ####
 
-        # Print a description of the new cycle to midas, but only if it hasn't 
-        # been written in last five seconds
-        t0 = time.monotonic() # avoid daylight savings time shenanigans
-        if t0 - self.time_last_print > 5:
-            self.client.msg(f'Setup new cycle: {self.nperiods} ({valid_periods} non-zero): ' +
-                            f'period times = {times} (seconds): ' +
-                            f'cycle/supercycle index = {self.cyclei}/{self.supcyclei} ' + 
-                            'External hardware' if self.external_trigger else 'Internal software' + 
-                            ' trigger.')  
-            self.time_last_print = t0
+        # Print a description of the new cycle to midas
+        self.client.msg(f'Setup cycle {current_cycle} of '+
+                        f'supercycle {self.current_supercycle} with ' +
+                        ('hardware' if self.hardware_trigger else 'software') + 
+                        ' trigger: ' + 
+                        '--'.join(map(str, times))
+                        )  
 
     def start_ppg(self):
         """Implement software trigger"""
-        if self.external_trigger: 
+        if self.hardware_trigger: 
             raise RuntimeError("Cannot send software trigger with external trigger set to True")
         self.ppg.start()
 
+    # these fetches cannot be done through the setting dict since it only 
+    # updates every event loop and we need the current version
+
+    @property
+    def ncycles(self):              return len(self.get('CyclesEnabled'))
+    @property
+    def cycles_enabled(self):       return self.get('CyclesEnabled')
+    @property
+    def current_cycle(self):        return self.get('CurrentCycle')
+    @property
+    def current_supercycle(self):   return self.get('CurrentSupercycle')
+    @property
+    def hardware_trigger(self):     return self.get('HardwareTrigger')
+    @property
+    def nperiods(self):             return len(self.get('PeriodsEnabled'))
+
+    def iterate_cycle(self):
+        """Set up for the next cycle, assume that the current cycle is finished"""
+
+        cyclei = (self.current_cycle+1) % self.ncycles
+
+        # get the next enabled cycle
+        nattempts = 0
+        while not self.cycles_enabled[cyclei]:
+            cyclei = (cyclei + 1) % self.ncycles
+
+            # check that there are enabled cycles, if not hang with error message
+            if nattempts > self.ncycles:
+                nattempts = 0
+                self.client.msg('No cycles enabled! Enable a cycle to continue.', 
+                                is_error=True)
+                time.sleep(5)
+            
+            nattempts += 1
+
+        # iterate number supercycles
+        if cyclei <= self.current_cycle:
+            self.set('CurrentSupercycle', self.current_supercycle+1)
+
+        # iterate current cycle
+        self.set('CurrentCycle', cyclei)
+        
     def readout_func(self):
         """
         Repeatedly check if we are in a cycle, if so don't do anything. 
@@ -337,6 +392,23 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         if not self.settings['Enabled']:
             return
         
+        # if we are not running, then set up the next cycle
+        if not self.ppg.is_running and not self.waiting_for_trigger:
+            self.waiting_for_trigger = True
+            self.iterate_cycle()
+            self.set_ppg_sequence_cycle()
+
+        # reset waiting 
+        if self.ppg.is_running and self.waiting_for_trigger:
+            self.waiting_for_trigger = False
+
+    def set(self, name, value):
+        """Set an ODB setting"""
+        self.client.odb_set(f'/Equipment/{self.NAME}/Settings/{name}', value)
+
+    def get(self, name):
+        """get an ODB setting"""
+        return self.client.odb_get(f'/Equipment/{self.NAME}/Settings/{name}')
 
 class SequencerFE(midas.frontend.FrontendBase):
     """
@@ -349,15 +421,29 @@ class SequencerFE(midas.frontend.FrontendBase):
 
     def begin_of_run(self, run_number):
 
-        # check if equipment is enabled
-        # TODO: fill this in
+        seq = self.equipment[UCNSequencer.NAME]
 
         # do timing sequence
-        self.set_all_equipment_status("Timing sequence", "greenLight")
-        # self.equipment[UCNSequencer.NAME].do_timing_sequence()
+        self.set_all_equipment_status("Run timing sequence", "greenLight")
+        seq.do_timing_sequence()
+
+        # reset parameters
+        seq.set('CurrentCycle', -1)
+        seq.set('CurrentPeriod', -1)
+        seq.set('CurrentSuperycle', -1)
+        seq.set('StopAtCycleEnd', False)
+        seq.set('StopAtSupercycleEnd', False)
+
+        # enable
+        seq.set('Enabled', True)
         self.set_all_equipment_status("Running", "greenLight")
 
     def end_of_run(self, run_number):
+
+        seq = self.equipment[UCNSequencer.NAME]
+
+        # disable
+        seq.exit()
         self.set_all_equipment_status("Ready", "greenLight")
 
     def frontend_exit(self):

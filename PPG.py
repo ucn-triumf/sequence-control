@@ -3,6 +3,7 @@
 # May 2026
 
 import VME
+import time
 
 # https://daq00.triumf.ca/DaqWiki/index.php/VME-PPG32
 
@@ -177,3 +178,59 @@ class PPG(object):
         test3 = self.vme.read_value(self.BASE_ADDR+0x18)
         test4 = self.vme.read_value(self.BASE_ADDR+0x2C)
         print(f"Test registers: {test0}, {test1}, {test2}, {test3}, {test4}")
+
+
+class PPG_Mock(object):
+
+    """
+        Test ppg object with false output. Doesn't actually control any board.
+    """
+
+    BASE_ADDR = 0x00c00000
+      
+    def __init__(self):
+        print('PPG init')
+        self.t0 = 0
+
+    def _set_command(self, idx:int, mask_high=None, mask_low=None, delay_10ns=None, instr=None):
+        print(f'PPG._set_command(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_10ns={delay_10ns}, instr={instr})')
+
+    def start(self):
+        print('PPG.start()')
+        self.t0 = time.monotonic()
+
+    def reset(self):
+        print('PPG.reset()')
+        self.t0 = 0
+
+    def halt(self, idx:int):
+        print(f'PPG.halt(idx={idx})')
+        self.t0 = 0
+
+    def hold(self, idx:int, mask_high:int, mask_low:int, delay_ns:int):
+        print(f'PPG.hold(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_ns={delay_ns})')
+
+    def mark_loop_start(self, idx:int, nloops:int):
+        print(f'PPG.mark_loop_start(idx={idx}, nloops={nloops})')
+
+    def mark_loop_end(self, idx:int):
+        print(f'PPG.mark_loop_end(idx={idx})')
+
+    def subroutine_call(self, idx:int, addr:int):
+        print(f'PPG.subroutine_call(idx={idx}, addr={addr})')
+
+    def subroutine_return(self, idx:int):
+        print(f'PPG.subroutine_return(idx={idx})')
+
+    def branch(self, idx:int, addr:int):
+        print(f'PPG.branch(idx={idx}, addr={addr})')
+
+    def set_internal_trigger(self):
+        print(f'PPG.set_internal_trigger()')
+
+    def set_external_trigger(self):
+        print(f'PPG.set_external_trigger()')
+
+    @property
+    def is_running(self):
+        return time.monotonic() - self.t0 < 3
