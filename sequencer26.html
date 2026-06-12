@@ -13,6 +13,25 @@
   <script src="sequencer-control/sequencer_control.js"></script>
   <script src="sequencer-control/setup.js"></script>
   <script src="sequencer-control/file_browser.js"></script>
+
+  <style>
+    .blink {
+      animation: blink_smooth 1.5s infinite;
+      -webkit-animation: blink_smooth 1.5s infinite;
+    }
+    @keyframes blink_smooth {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+  </style>
+
   <title>Sequencer26</title>
 </head>
 ```

@@ -2,13 +2,16 @@ function update_beam_status(){
 
     // TODO: remove following on production code
     let cell = document.getElementById('beamline_status');
-    cell.classList.add("mred");
-    cell.innerText = 'UCN beamline disabled (septum or B0 are off)';
+    
+    // TODO: remove these following debugging statements
+    // cell.classList.add("mred");
+    // cell.innerText = 'UCN beamline disabled (septum or B0 are off)';
+    // return;
 
-    return;
     // path to epics logging equipment
-    mjsonrpc_db_get_values(["/Equipment/BeamlineEpics/Settings/Names",
-                            "/Equipment/BeamlineEpics/Variables/Measured"]).then(function(rpc) {
+    // TODO: set real paths
+    mjsonrpc_db_get_values(["/Equipment/FakeBeamlineEpics/Settings/Names",
+                            "/Equipment/FakeBeamlineEpics/Variables/Measured"]).then(function(rpc) {
         
         // get data, indexed by name
         let data = rpc.result.data
@@ -34,7 +37,7 @@ function update_beam_status(){
         // BL1A current
         cell = document.getElementById('1vextractcur');
         cell.innerText = `${parseFloat(beam["B1:FOIL:ADJCUR"]).toFixed(2)} uA`;
-
+        
         // BL1U current
         cell = document.getElementById('predictedbeamcur');
         cell.innerText = `${parseFloat(beam["B1V:KSM:PREDCUR"]).toFixed(2)} uA`;
