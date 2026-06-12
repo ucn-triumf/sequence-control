@@ -514,10 +514,17 @@ function setTotalDuration(){
                 }
 
                 // highlight bad total duration
-                if(totals[cyclei] > beamon + beamoff - 10){
+                let is_too_long = totals[cyclei] > beamon + beamoff - 10;
+                let is_too_short = totals[cyclei] == 0;
+                if(is_too_long){
                     cell.classList.add('morange');
                     cell.title ="Total cycle duration must be less than beam on + beam off - 10 seconds";
-                    
+                } else {
+                    cell.classList.remove('morange');
+                    cell.title = "";
+                }
+
+                if(is_too_long || is_too_short){
                     // flash yellow
                     if(document.getElementById(`cycle_checkbox_${cyclei}`).checked){
                         checkbox_cell.style.backgroundColor = "var(--myellow)";
@@ -526,10 +533,7 @@ function setTotalDuration(){
                     // disable checkbox
                     mjsonrpc_db_set_value(`/Equipment/${NAME}/Settings/CyclesEnabled[${cyclei}]`,
                                           false);                    
-                } else {
-                    cell.classList.remove('morange');
-                    cell.title = "";
-                }
+                } 
             }
         }
 
