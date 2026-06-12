@@ -204,7 +204,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         self.ppg.halt(0)
         self.ppg.set_internal_trigger()
 
-    def set_ppg_sequence_cycle(self):
+    def set_ppg_cycle_sequence(self):
         """Set the ppg sequence for a single channel with valve states. Doesn't 
         start the sequence since we are potentially waiting on a hardware trigger"""
 
@@ -246,8 +246,6 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # track number of periods and times
         valid_periods = 0
         times = []
-
-        print(f'Cycle {current_cycle}')
         
         for periodi in range(nperiods):
 
@@ -346,7 +344,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         """Set up for the next cycle, assume that the current cycle is finished"""
 
         cyclei = (self.current_cycle+1) % self.ncycles
-
+        
         # get the next enabled cycle
         nattempts = 0
         while not self.cycles_enabled[cyclei]:
@@ -357,7 +355,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
                 nattempts = 0
                 self.client.msg('No cycles enabled! Enable a cycle to continue.', 
                                 is_error=True)
-                time.sleep(5)
+                self.client.communicate(5000)
             
             nattempts += 1
 
@@ -367,6 +365,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # iterate current cycle
         self.set('CurrentCycle', cyclei)
+        self.client.communicate(10)
         
     def readout_func(self):
         """
@@ -396,7 +395,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         if not self.ppg.is_running and not self.waiting_for_trigger:
             self.waiting_for_trigger = True
             self.iterate_cycle()
-            self.set_ppg_sequence_cycle()
+            self.set_ppg_cycle_sequence()
 
         # reset waiting 
         if self.ppg.is_running and self.waiting_for_trigger:
@@ -429,8 +428,8 @@ class SequencerFE(midas.frontend.FrontendBase):
 
         # reset parameters
         seq.set('CurrentCycle', -1)
-        seq.set('CurrentPeriod', -1)
-        seq.set('CurrentSuperycle', -1)
+        seq.set('CurrentPeriod', 0)
+        seq.set('CurrentSupercycle', 0)
         seq.set('StopAtCycleEnd', False)
         seq.set('StopAtSupercycleEnd', False)
 
