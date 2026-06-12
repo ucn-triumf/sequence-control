@@ -100,7 +100,8 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         ("CurrentSupercycle", 0),
         ("StopAtCycleEnd", False),
         ("StopAtSupercycleEnd", False),
-        ("StopAtSupercycleN", -1),
+        ("StopAtSupercycleN", 1000),
+        ("StartAtCycleN", 0),
     ])
 
     def __init__(self, client):
@@ -203,6 +204,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
     def exit(self):
         """Stop PPG on exit"""
         self.set('Enabled', False)
+        self.set('StartAtCycleN', 0)
         self.ppg.reset()
         self.ppg.halt(0)
         self.ppg.set_internal_trigger()
@@ -420,6 +422,15 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         if self.ppg.is_running and self.waiting_for_trigger:
             self.waiting_for_trigger = False
 
+    def reset(self):
+        """reset odb parameters"""
+        self.set('CurrentCycle', self.get('StartAtCycleN')-1)
+        self.set('CurrentPeriod', 0)
+        self.set('CurrentSupercycle', 0)
+        self.set('StopAtCycleEnd', False)
+        self.set('StopAtSupercycleEnd', False)
+        self.client.communicate(10)
+
     def set(self, name, value):
         """Set an ODB setting"""
         self.client.odb_set(f'/Equipment/{self.NAME}/Settings/{name}', value)
@@ -442,12 +453,7 @@ class SequencerFE(midas.frontend.FrontendBase):
         seq = self.equipment[UCNSequencer.NAME]
 
         # reset parameters
-        seq.set('CurrentCycle', -1)
-        seq.set('CurrentPeriod', 0)
-        seq.set('CurrentSupercycle', 0)
-        seq.set('StopAtCycleEnd', False)
-        seq.set('StopAtSupercycleEnd', False)
-        self.client.communicate(10)
+        seq.reset()
 
         # do timing sequence
         self.set_all_equipment_status("Run timing sequence", "greenLight")
