@@ -6,9 +6,12 @@ from PPG import PPG_Mock as PPG # testing
 import time
 import midas
 import midas.frontend
+import midas.event
 import collections
+import numpy as np
 
-# TODO: Bank info 
+# TODO: Overview of how this works. See https://github.com/ucn-triumf/sequence-control/blob/master/sequence_control_multi_valve.cxx
+# TODO: clear after-run comment on run start
 
 """Current connection status (May 27 2026):
 
@@ -137,6 +140,15 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # disable enable - prevent ppg programming after crash
         self.set('Enable', False)
 
+        # was in cycle - use for detecting cycle start
+        self.was_incycle = False
+
+        # number of cycles started
+        self.ncycles_started = 0
+
+        # period durations set in PPG programming
+        self.period_times = []
+
     def detailed_settings_changed_func(self, path, idx, new_value):
         """
         You can define this function to be told about when the values in
@@ -249,8 +261,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         idx += 1
         
         # track number of periods and times
-        valid_periods = 0
-        times = []
+        self.period_times = []
         
         for periodi in range(nperiods):
 
@@ -289,8 +300,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
             self.ppg.mark_loop_end(idx)
             idx += 1
 
-            valid_periods += 1
-            times.append(duration)
+            self.period_times.append(duration)
 
         # Close all valves
         self.ppg.hold(idx, 
@@ -320,7 +330,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
                         f'supercycle {self.current_supercycle} with ' +
                         ('hardware' if self.hardware_trigger else 'software') + 
                         ' trigger. Periods: ' + 
-                        '/'.join(map(str, times))
+                        '/'.join(map(str, self.period_times))
                         )  
 
     def start_ppg(self):
@@ -328,22 +338,6 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         if self.hardware_trigger: 
             raise RuntimeError("Cannot send software trigger with external trigger set to True")
         self.ppg.start()
-
-    # these fetches cannot be done through the setting dict since it only 
-    # updates every event loop and we need the current version
-
-    @property
-    def ncycles(self):              return len(self.get('CyclesEnabled'))
-    @property
-    def cycles_enabled(self):       return self.get('CyclesEnabled')
-    @property
-    def current_cycle(self):        return self.get('CurrentCycle')
-    @property
-    def current_supercycle(self):   return self.get('CurrentSupercycle')
-    @property
-    def hardware_trigger(self):     return self.get('HardwareTrigger')
-    @property
-    def nperiods(self):             return len(self.get('PeriodsEnabled'))
 
     def iterate_cycle(self):
         """Set up for the next cycle, assume that the current cycle is finished"""
@@ -385,8 +379,144 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # iterate current cycle
         self.set('CurrentCycle', cyclei)
+        self.ncycles_started += 1
         self.client.communicate(10) # needed so self.settings picks up the changes
+
+    def create_bank_SEQC(self):
+        """Make midas bank (SEQuencer Cycle) to record the crude timings of the 
+        cycle start and stop, as well as the period durations during each cycle.
         
+        Bank format (4 byte words): 
+            * word 0 -> second portion of current time
+            * word 1 -> millisecond portion of current time
+            * word 2 -> 1 if cycle just started, 0 if cycle stop
+            * word 3 -> cycle unique id
+            * word 4 -> cycle count
+            * word 5 -> super-cycle count
+            * word 6 -> number of enabled periods (nperiods)
+            * word 7 - 7+nperiods -> period durations in seconds
+        """
+
+        # create storage array
+        nperiods = len(self.period_times)
+        data = np.zeros(nperiods+8, dtype=np.uint32) # casts to uint32 are forced at assignment
+
+        # get time
+        t = time.time()
+        data[0] = t                              # time, seconds
+        data[1] = np.round((t - data[0])*1000)   # time, ms
+
+        # start / stop status
+        # if we're in the cycle, the cycle must have just started
+        data[2] = self.is_incycle
+
+        # current cycle id
+        data[3] = self.current_cycle
+
+        # number of cycles started (but not necessarily finished)
+        data[4] = self.ncycles_started
+
+        # number of supercycles started (but not necessarily finished)
+        data[5] = self.current_supercycle + 1
+
+        # number of periods enabled
+        data[6] = nperiods
+
+        # period durations in order
+        for i, periodt in enumerate(self.period_times):
+            data[7+i] = periodt
+
+        # make the bank
+        bank = midas.event.Bank()
+        bank.name = 'SEQC'
+        bank.type = midas.TID_UINT32 # TID_UINT32 = TID_DWORD
+        bank.data = data
+        return bank
+        
+    def create_bank_SEQV(self):
+        """Make midas bank (SEQuencer Valve) to record the valve settings at BOR.
+
+        Bank format (4 byte words): 
+            * word 0 -> number of valves
+            * word 1 -> number of enabled periods
+            * word 2 -> valve states of first enabled period
+                * bit1: valve 1 
+                * bit2: valve 2
+                * ...
+            * word 3 -> valve states of second enabled period
+            * ...
+
+        Note:
+            * Supports a max of 32 valves - this is ok since the PPG has only 32 channel anyway
+            * Valve bit number from the bank format does not correspond to the PPG channel, rather the name of the valve (see bank SEVN)
+        """
+
+        # enabled periods
+        periods_enabled = self.get('PeriodsEnabled')
+        nperiods = len(periods_enabled)
+        nperiods_enabled = sum(periods_enabled)
+
+        # valves
+        valve_states = self.get("ValveStates")
+        nvalves = len(valve_states) // nperiods
+
+        # init bank data
+        data = np.zeros(2+nperiods_enabled, dtype=np.uint32)
+        data[0] = nvalves
+        data[1] = nperiods_enabled
+
+        # set valve states
+        idx = 0
+        for periodi in range(nperiods):
+
+            # skip disabled periods
+            if not periods_enabled[periodi]:
+                idx += nvalves
+                continue
+
+            # set valve state bits
+            for valvei in range(nvalves):
+                if valve_states[idx]:
+                    data[periodi] |= 1<<valvei
+
+
+        # make bank
+        bank = midas.event.Bank()
+        bank.name = 'SEQV'
+        bank.type = midas.TID_UINT32 # TID_UINT32 = TID_DWORD
+        bank.data = data
+        return bank
+    
+    def create_bank_SEQN(self):
+        """Make midas bank (SEQuencer period/valve Names) to record the settings at BOR.
+
+        Bank format (raw bytes, encoding strings): 
+            * enabled period names
+            * valve names
+
+        Note:
+            * names are delminated by the "Unit Separator" ASCII 31 (0x1F)
+            * the two sets of names are deliminated by the "Group Separator" ASCII 29 (0x1D)"" 
+            * strings are encoded as UTF-8
+        """
+
+        # get names
+        periods_enabled = self.get('PeriodsEnabled')
+        period_names = np.array(self.get('PeriodNames'))[periods_enabled]
+        valve_names = self.get('ValveNames')
+
+        # make data
+        data = (chr(31).join(period_names) + 
+                chr(29) + 
+                chr(31).join(valve_names))
+        
+        # make bank
+        bank = midas.event.Bank()
+        bank.name = 'SEQN'
+        bank.type = midas.TID_BYTE
+        bank.data = data.encode("UTF-8")
+        return bank
+    
     def readout_func(self):
         """
         Repeatedly check if we are in a cycle, if so don't do anything. 
@@ -410,25 +540,54 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # check if enabled
         if not self.settings['Enabled']:
             self.waiting_for_trigger = False
+            self.was_incycle = False
             return
 
-        # if we are not running, then set up the next cycle
-        if not self.ppg.is_running and not self.waiting_for_trigger:
+        # midas event to return
+        event = midas.event.Event()
+        event.header.event_id = 1
+        event.header.serial_number = self.ncycles_started
+
+        # the cycle has ended - must go before setting up the PPG in case of 
+        # fast trigger
+        if not self.is_incycle and self.was_incycle:
+            event.add_bank(self.create_bank_SEQC())
+            self.was_incycle = False
+            self.waiting_for_trigger = False
+        
+        # if we are not running, and not waiting for the PPG to trigger, then 
+        # set up the next cycle
+        if not self.is_incycle and not self.waiting_for_trigger:
+
+            # start of run - create settings banks
+            if self.current_cycle < 0:
+                event.add_bank(self.create_bank_SEQN())
+                event.add_bank(self.create_bank_SEQV())
+
+            # setup the next cycle
             self.waiting_for_trigger = True
             self.iterate_cycle()
             self.set_ppg_cycle_sequence()
 
-        # reset waiting 
-        if self.ppg.is_running and self.waiting_for_trigger:
+        # the cycle has started
+        if self.is_incycle and self.waiting_for_trigger:
             self.waiting_for_trigger = False
-
+            event.add_bank(self.create_bank_SEQC())
+            self.was_incycle = True
+        
+        # return event if filled with a bank
+        if len(event.banks.keys()) > 0:
+            return event
+        
     def reset(self):
-        """reset odb parameters"""
+        """Reset in preparation for start of run"""
         self.set('CurrentCycle', self.get('StartAtCycleN')-1)
         self.set('CurrentPeriod', 0)
         self.set('CurrentSupercycle', 0)
         self.set('StopAtCycleEnd', False)
         self.set('StopAtSupercycleEnd', False)
+        self.was_incycle = False
+        self.ncycles_started = 0
         self.client.communicate(10)
 
     def set(self, name, value):
@@ -439,6 +598,23 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         """get an ODB setting"""
         return self.client.odb_get(f'/Equipment/{self.NAME}/Settings/{name}')
 
+    # these fetches cannot be done through the setting dict since it only 
+    # updates every event loop and we need the current version
+    @property
+    def ncycles(self):              return len(self.get('CyclesEnabled'))
+    @property
+    def cycles_enabled(self):       return self.get('CyclesEnabled')
+    @property
+    def current_cycle(self):        return self.get('CurrentCycle')
+    @property
+    def current_supercycle(self):   return self.get('CurrentSupercycle')
+    @property
+    def hardware_trigger(self):     return self.get('HardwareTrigger')
+    @property
+    def nperiods(self):             return len(self.get('PeriodsEnabled'))
+    @property
+    def is_incycle(self):           return self.ppg.is_running
+
 class SequencerFE(midas.frontend.FrontendBase):
     """
     Sequencer frontend
@@ -446,6 +622,12 @@ class SequencerFE(midas.frontend.FrontendBase):
     def __init__(self):
         midas.frontend.FrontendBase.__init__(self, "fe_ucnsequencer")
         self.add_equipment(UCNSequencer(self.client))
+
+        # Set up the sequence settings so that the sequencer does BOR after the 
+        # digitizers and does EOR before the digitizers
+        self.client.set_transition_sequence(midas.TR_START, 550)
+        self.client.set_transition_sequence(midas.TR_STOP,  450)
+
         self.client.msg("UCN Sequencer initialized.")
 
     def begin_of_run(self, run_number):
