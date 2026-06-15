@@ -273,34 +273,34 @@ class UCNSequencer(midas.frontend.EquipmentBase):
             duration = period_durations[periodi * ncycles + current_cycle]
 
             # skip zero duration periods
-            if duration < 0.1:
-                continue
+            if duration > 0.1:
 
-            # Figure out which valves are enabled.  For each open valve we set 
-            # two outlets high.
-            enabled_outputs = 0
-            nvalves = len(valve_names)
-            for valvei in range(nvalves):
-                if valve_open[valvei * nvalves + periodi]:
-                    enabled_outputs += (0x3) << valvei*2
+                # Figure out which valves are enabled.  For each open valve we set 
+                # two outlets high.
+                enabled_outputs = 0
+                nvalves = len(valve_names)
+                for valvei in range(nvalves):
+                    if valve_open[valvei * nvalves + periodi]:
+                        enabled_outputs += (0x3) << valvei*2
 
-            # Add another output signal which indicates which period we are in.
-            enabled_outputs += (0x1) << (16+periodi)
+                # Add another output signal which indicates which period we are in.
+                enabled_outputs += (0x1) << (16+periodi)
 
-            # Now write the actual commands to open/close valves
-            # Looping to get around 32-bit limitation in max limit per command 
-            # (max of 42s otherwise).
-            self.ppg.mark_loop_start(idx, nloops=100)
-            idx += 1
-            self.ppg.hold(idx, 
-                          mask_high= enabled_outputs, 
-                          mask_low = ~enabled_outputs, 
-                          delay_ns = duration*1e9/100.0)
-            idx += 1
-            self.ppg.mark_loop_end(idx)
-            idx += 1
+                # Now write the actual commands to open/close valves
+                # Looping to get around 32-bit limitation in max limit per command 
+                # (max of 42s otherwise).
+                self.ppg.mark_loop_start(idx, nloops=100)
+                idx += 1
+                self.ppg.hold(idx, 
+                            mask_high= enabled_outputs, 
+                            mask_low = ~enabled_outputs, 
+                            delay_ns = duration*1e9/100.0)
+                idx += 1
+                self.ppg.mark_loop_end(idx)
+                idx += 1
 
-            self.period_times.append(duration)
+            # record  - keep zero duration periods for bank in SEQC
+            self.period_times.append(duration) 
 
         # Close all valves
         self.ppg.hold(idx, 
@@ -399,7 +399,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # create storage array
         nperiods = len(self.period_times)
-        data = np.zeros(nperiods+8, dtype=np.uint32) # casts to uint32 are forced at assignment
+        data = np.zeros(nperiods+7, dtype=np.uint32) # force uint32 cast at assignment
 
         # get time
         t = time.time()
@@ -448,7 +448,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         Note:
             * Supports a max of 32 valves - this is ok since the PPG has only 32 channel anyway
-            * Valve bit number from the bank format does not correspond to the PPG channel, rather the name of the valve (see bank SEVN)
+            * Valve bit number from the bank format does not correspond to the PPG channel, rather the name of the valve (see bank SEQN)
         """
 
         # enabled periods
@@ -467,6 +467,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
 
         # set valve states
         idx = 0
+        enbl_periodi = 0 # enabled period index
         for periodi in range(nperiods):
 
             # skip disabled periods
@@ -477,8 +478,9 @@ class UCNSequencer(midas.frontend.EquipmentBase):
             # set valve state bits
             for valvei in range(nvalves):
                 if valve_states[idx]:
-                    data[periodi] |= 1<<valvei
-
+                    data[enbl_periodi+2] |= 1<<valvei # +2 accounts for nvalues and nenabled
+                idx += 1
+            enbl_periodi += 1
 
         # make bank
         bank = midas.event.Bank()
@@ -498,10 +500,11 @@ class UCNSequencer(midas.frontend.EquipmentBase):
             * names are delminated by the "Unit Separator" ASCII 31 (0x1F)
             * the two sets of names are deliminated by the "Group Separator" ASCII 29 (0x1D)"" 
             * strings are encoded as UTF-8
+            * Ex: "period1\x1fperiod1\x1fperiod3\x1dvalve1\x1fvalve2\x1fvalve3"
         """
 
         # get names
-        periods_enabled = self.get('PeriodsEnabled')
+        periods_enabled = np.array(self.get('PeriodsEnabled')).astype(bool)
         period_names = np.array(self.get('PeriodNames'))[periods_enabled]
         valve_names = self.get('ValveNames')
 
