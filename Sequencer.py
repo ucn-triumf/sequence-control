@@ -431,6 +431,10 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         bank.name = 'SEQC'
         bank.type = midas.TID_UINT32 # TID_UINT32 = TID_DWORD
         bank.data = data
+
+        # udpate the ODB
+        self.client.odb_set(f'/Equipment/{self.NAME}/Variables/SEQC', data)
+
         return bank
         
     def create_bank_SEQV(self):
@@ -487,6 +491,9 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         bank.name = 'SEQV'
         bank.type = midas.TID_UINT32 # TID_UINT32 = TID_DWORD
         bank.data = data
+
+        # update ODB
+        self.client.odb_set(f'/Equipment/{self.NAME}/Variables/SEQV', data)
         return bank
     
     def create_bank_SEQN(self):
@@ -518,6 +525,11 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         bank.name = 'SEQN'
         bank.type = midas.TID_BYTE
         bank.data = data.encode("UTF-8")
+
+        # update ODB
+        self.client.odb_set(f'/Equipment/{self.NAME}/Variables/SEQN', 
+                            data.replace(chr(31), ',').replace(chr(29), ';'))
+        
         return bank
     
     def readout_func(self):
