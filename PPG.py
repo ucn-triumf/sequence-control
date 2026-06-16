@@ -236,8 +236,9 @@ class PPG_Mock(object):
 
     def set_external_trigger(self):
         self.print(f'PPG.set_external_trigger()')
-        self.t0 = time.monotonic() # "trigger" immediately
+        time.sleep(2) # "trigger" after 2 sec
+        self.t0 = time.monotonic() 
 
     @property
     def is_running(self):
-        return time.monotonic() - self.t0 < 3
+        return time.monotonic() - self.t0 < 5
