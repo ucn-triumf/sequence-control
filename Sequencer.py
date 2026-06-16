@@ -651,6 +651,9 @@ class SequencerFE(midas.frontend.FrontendBase):
         # reset parameters
         seq.reset()
 
+        # reset end-of-run comment
+        self.client.odb_set('/Experiment/Edit on start/end_of_run_comment', '')
+
         # do timing sequence
         self.set_all_equipment_status("Run timing sequence", "greenLight")
         seq.do_timing_sequence()
