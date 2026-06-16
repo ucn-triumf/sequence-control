@@ -99,7 +99,6 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         ("ValveNames", [""]*NVALVES),
         ("PeriodNames", [""]*5),
         ("CurrentCycle", 0),
-        ("CurrentPeriod", 0),
         ("CurrentSupercycle", 0),
         ("StopAtCycleEnd", False),
         ("StopAtSupercycleEnd", False),

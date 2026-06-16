@@ -38,6 +38,7 @@ function update_seq_status(){
             document.getElementById('incycle').innerText = 'No';
             document.getElementById('timeleftincycle').innerText = '';    
             document.getElementById('timeleftinsupercycle').innerText = '';    
+            mjsonrpc_db_set_value(`/Equipment/${NAME}/Settings/CurrentPeriod`, 0);
             return;
         } 
         
@@ -49,23 +50,6 @@ function update_seq_status(){
         let now = Date.now()/1000;
         let cycle_elapsed = now - cycle_start;
         document.getElementById('timeleftincycle').innerText = `${Math.round(cycle_dur - cycle_elapsed)} sec`;
-        
-        // update period number
-        let ncycles = settings['cyclesenabled'].length
-        let period_elapsed = 0;
-        for(let i=current_cycle; i<settings['perioddurations'].length; i+=ncycles){
-            
-            // TODO: finish implmeenting
-            if(period_elapsed > cycle_elapsed){
-                console.log(`period  ${(i-current_cycle)/ncycles}`)
-                break;
-            }
-            
-            period_elapsed += settings['perioddurations'][i];
-        }
-
-
-
         
         // set time until supercycle end
         

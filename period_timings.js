@@ -546,10 +546,59 @@ function setTotalDuration(){
 /** Prevent editing of cycle in progress and highlight cells */
 function disable_and_highlight_cycle_in_progress(){
     mjsonrpc_db_get_values([`/Equipment/${NAME}/Settings`,
+                            `/Equipment/${NAME}/Variables`,
                             '/Runinfo/State']).then(function(rpc){
         let settings = rpc.result.data[0];
-        let inrun = rpc.result.data[1] !== STATE_STOPPED;
+        let variables = rpc.result.data[1];
+        let inrun = rpc.result.data[2] !== STATE_STOPPED;
+        let seqc = variables['seqc'].map(Number);
+        let cycle_start = seqc[0];
+        let incycle = seqc[2];
+        let current_cycle = seqc[3];
         
+        // highlight current cycle
+        for(let cyclei=0; cyclei<NCYCLES; cyclei++){
+            let cell = document.getElementById(`cycle_${cyclei}`);
+            if(cell === null) continue;
+
+            if(cyclei == settings.currentcycle && inrun && incycle){
+                cell.classList.add("mgreen");
+            } else {
+                cell.classList.remove("mgreen");
+            }
+        }
+
+        // get current period
+        let ncycles = settings['cyclesenabled'].length
+        let period_elapsed = 0;
+        let current_period = 0;
+        let cycle_elapsed = Date.now()/1000 - cycle_start;
+        for(let i=current_cycle; i<settings['perioddurations'].length; i+=ncycles){
+
+            current_period = (i-current_cycle)/ncycles;
+
+            if(settings['periodsenabled'][current_period] == 1){
+                period_elapsed += settings['perioddurations'][i];
+            }
+
+            if(period_elapsed > cycle_elapsed){
+                break;
+            }
+        }
+
+        // highlight current period
+        for(let periodi=0; periodi<NPERIODS; periodi++){
+            let cell = document.getElementById(`period_${periodi}`);
+            if(cell === null) continue;
+
+            if(periodi == current_period && inrun && incycle){
+                cell.classList.add("mgreen");
+            } else {
+                cell.classList.remove("mgreen");
+            }
+        }
+        
+        // highlight current cycle/period duration cell
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
             for(let periodi=0; periodi<NPERIODS; periodi++){
 
@@ -564,7 +613,7 @@ function disable_and_highlight_cycle_in_progress(){
                     div.setAttribute('data-odb-editable', `1`);
                 }
 
-                if(cyclei == settings.currentcycle && periodi == settings.currentperiod && inrun){
+                if(cyclei == settings.currentcycle && periodi == current_period && inrun && incycle){
                     cell.classList.add("mgreen");
                 } else {
                     cell.classList.remove("mgreen");
@@ -572,30 +621,7 @@ function disable_and_highlight_cycle_in_progress(){
             }
         }
 
-        // highlight current cycle
-        for(let cyclei=0; cyclei<NCYCLES; cyclei++){
-            let cell = document.getElementById(`cycle_${cyclei}`);
-            if(cell === null) continue;
 
-            if(cyclei == settings.currentcycle && inrun){
-                cell.classList.add("mgreen");
-            } else {
-                cell.classList.remove("mgreen");
-            }
-        }
-
-        // highlight current period
-        for(let periodi=0; periodi<NPERIODS; periodi++){
-            let cell = document.getElementById(`period_${periodi}`);
-            if(cell === null) continue;
-
-            if(periodi == settings.currentperiod && inrun){
-                cell.classList.add("mgreen");
-            } else {
-                cell.classList.remove("mgreen");
-            }
-        }
-        
         // elements to disable / enable elements when in run
         let to_disable = ['valve_rm_button',
                           'valve_add_button',
