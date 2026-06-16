@@ -189,10 +189,11 @@ class PPG_Mock(object):
     BASE_ADDR = 0x00c00000
     DEBUG_MSG = False
 
-
     def __init__(self):
         self.print('PPG init')
         self.t0 = 0
+        self.runtime = 0
+        self.nloops = 1
 
     def print(self, *args, **kwargs):
         if self.DEBUG_MSG:
@@ -208,6 +209,7 @@ class PPG_Mock(object):
     def reset(self):
         self.print('PPG.reset()')
         self.t0 = 0
+        self.runtime = 0
 
     def halt(self, idx:int):
         self.print(f'PPG.halt(idx={idx})')
@@ -215,12 +217,15 @@ class PPG_Mock(object):
 
     def hold(self, idx:int, mask_high:int, mask_low:int, delay_ns:int):
         self.print(f'PPG.hold(idx={idx}, mask_high={mask_high}, mask_low={mask_low}, delay_ns={delay_ns})')
+        self.runtime += delay_ns * 1e-9 * self.nloops
 
     def mark_loop_start(self, idx:int, nloops:int):
         self.print(f'PPG.mark_loop_start(idx={idx}, nloops={nloops})')
+        self.nloops = nloops
 
     def mark_loop_end(self, idx:int):
         self.print(f'PPG.mark_loop_end(idx={idx})')
+        self.nloops = 1
 
     def subroutine_call(self, idx:int, addr:int):
         self.print(f'PPG.subroutine_call(idx={idx}, addr={addr})')
@@ -241,4 +246,4 @@ class PPG_Mock(object):
 
     @property
     def is_running(self):
-        return time.monotonic() - self.t0 < 5
+        return time.monotonic() - self.t0 < self.runtime
