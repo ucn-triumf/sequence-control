@@ -38,7 +38,6 @@ function update_seq_status(){
             document.getElementById('incycle').innerText = 'No';
             document.getElementById('timeleftincycle').innerText = '';    
             document.getElementById('timeleftinsupercycle').innerText = '';    
-            mjsonrpc_db_set_value(`/Equipment/${NAME}/Settings/CurrentPeriod`, 0);
             return;
         } 
         
@@ -49,17 +48,35 @@ function update_seq_status(){
         let cycle_dur = document.getElementById(`total_duration_${current_cycle}`).innerText;
         let now = Date.now()/1000;
         let cycle_elapsed = now - cycle_start;
-        document.getElementById('timeleftincycle').innerText = `${Math.round(cycle_dur - cycle_elapsed)} sec`;
-        
-        // set time until supercycle end
+        let cycle_remaining = cycle_dur - cycle_elapsed;
+        document.getElementById('timeleftincycle').innerText = `${Math.round(cycle_remaining)} sec`;
         
         // set supercycle duration
         let super_dur = 0;
         for(let cyclei=0; cyclei < NCYCLES; cyclei++){
-            let cell = document.getElementById(`total_duration_${cyclei}`);
-            super_dur += parseInt(cell.innerText);
+            if(settings.cyclesenabled[cyclei]){
+                let cell = document.getElementById(`total_duration_${cyclei}`);
+                super_dur += parseInt(cell.innerText);
+            }
         }
         document.getElementById('supercycledur').innerText = super_dur;
+
+        // get duration of full cycles remaining
+        all_cycle_remaining = 0;
+        for(let cyclei=current_cycle+1; cyclei<NCYCLES; cyclei++){
+            if(settings.cyclesenabled[cyclei]){
+                for(let periodi=0; periodi<NPERIODS; periodi++){
+                    if(settings.periodsenabled[periodi]){
+                        all_cycle_remaining += settings.perioddurations[cyclei + periodi*NCYCLES];
+                    }
+                }
+            }
+        }
+
+        // set time until supercycle end
+        let super_remaining = cycle_remaining + all_cycle_remaining;
+        document.getElementById('timeleftinsupercycle').innerText = `${Math.round(super_remaining)} sec`;
+        
 
     }).catch(function(error) {
         mjsonrpc_error_alert(error);

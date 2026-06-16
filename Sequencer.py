@@ -11,7 +11,6 @@ import collections
 import numpy as np
 
 # TODO: Overview of how this works. See https://github.com/ucn-triumf/sequence-control/blob/master/sequence_control_multi_valve.cxx
-# TODO: clear after-run comment on run start
 
 """Current connection status (May 27 2026):
 
