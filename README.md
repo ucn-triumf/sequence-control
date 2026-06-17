@@ -6,6 +6,23 @@ organized. It is meant to be read first, before diving into the source files.
 For a low-level walkthrough of how the PPG hardware is programmed, see
 [`PPG_commands_explained.md`](PPG_commands_explained.md).
 
+- [The UCN Sequencer](#the-ucn-sequencer)
+  - [1. What the sequencer does](#1-what-the-sequencer-does)
+  - [2. The core vocabulary](#2-the-core-vocabulary)
+  - [3. The hardware](#3-the-hardware)
+    - [3.1 PPG32 pulse pattern generator](#31-ppg32-pulse-pattern-generator)
+    - [3.2 Triggering](#32-triggering)
+    - [3.3 Output channel map](#33-output-channel-map)
+    - [3.4 VME crate](#34-vme-crate)
+  - [4. Software architecture](#4-software-architecture)
+    - [4.1 `VME.py` — the VME transport](#41-vmepy--the-vme-transport)
+    - [4.2 `PPG.py` — the PPG command set](#42-ppgpy--the-ppg-command-set)
+    - [4.3 `Sequencer.py` — the frontend and the experiment logic](#43-sequencerpy--the-frontend-and-the-experiment-logic)
+    - [4.4 The ODB settings](#44-the-odb-settings)
+  - [5. The web interface](#5-the-web-interface)
+  - [6. End-to-end data flow](#6-end-to-end-data-flow)
+  - [7. Where to go next](#7-where-to-go-next)
+
 ---
 
 ## 1. What the sequencer does
