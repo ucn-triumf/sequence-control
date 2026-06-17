@@ -460,11 +460,10 @@ async function rmperiod(){
 function setTotalDuration(){
     if(NCYCLES === 0) return;  // globals not yet initialized; avoid division by zero
 
-    // TODO: fix paths to beamline epics    
     let paths = [`/Equipment/${NAME}/Settings/PeriodDurations`,
                  `/Equipment/${NAME}/Settings/PeriodsEnabled`,
-                 "/Equipment/FakeBeamlineEpics/Settings/Names",
-                 "/Equipment/FakeBeamlineEpics/Variables/Measured"
+                 `/Equipment/${BEAMLINE_EPICS}/Settings/Names`,
+                 `/Equipment/${BEAMLINE_EPICS}/Variables/Measured`
                 ];
     mjsonrpc_db_get_values(paths).then(function(rpc){
         

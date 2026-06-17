@@ -10,8 +10,6 @@ import midas.event
 import collections
 import numpy as np
 
-# TODO: Overview of how this works. See https://github.com/ucn-triumf/sequence-control/blob/master/sequence_control_multi_valve.cxx
-
 """Current connection status (May 27 2026):
 
 PPG32 Output Channels 

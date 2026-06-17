@@ -2,6 +2,7 @@
 
 // global variables
 const NAME = "UCNSequencer26";
+const BEAMLINE_EPICS = "FakeBeamlineEpics";
 window.NCYCLES = 0;
 window.NPERIODS = 0;
 window.NVALVES = 0;

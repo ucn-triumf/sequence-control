@@ -1,17 +1,10 @@
 function update_beam_status(){
 
-    // TODO: remove following on production code
     let cell = document.getElementById('beamline_status');
-    
-    // TODO: remove these following debugging statements
-    // cell.classList.add("mred");
-    // cell.innerText = 'UCN beamline disabled (septum or B0 are off)';
-    // return;
 
     // path to epics logging equipment
-    // TODO: set real paths
-    mjsonrpc_db_get_values(["/Equipment/FakeBeamlineEpics/Settings/Names",
-                            "/Equipment/FakeBeamlineEpics/Variables/Measured"]).then(function(rpc) {
+    mjsonrpc_db_get_values([`/Equipment/${BEAMLINE_EPICS}/Settings/Names`,
+                            `/Equipment/${BEAMLINE_EPICS}/Variables/Measured`]).then(function(rpc) {
         
         // get data, indexed by name
         let data = rpc.result.data
