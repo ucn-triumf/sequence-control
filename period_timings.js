@@ -460,18 +460,25 @@ async function rmperiod(){
 function setTotalDuration(){
     if(NCYCLES === 0) return;  // globals not yet initialized; avoid division by zero
 
-    
+    // TODO: fix paths to beamline epics    
     let paths = [`/Equipment/${NAME}/Settings/PeriodDurations`,
-                 `/Equipment/${NAME}/Settings/PeriodsEnabled`];
+                 `/Equipment/${NAME}/Settings/PeriodsEnabled`,
+                 "/Equipment/FakeBeamlineEpics/Settings/Names",
+                 "/Equipment/FakeBeamlineEpics/Variables/Measured"
+                ];
     mjsonrpc_db_get_values(paths).then(function(rpc){
         
-        // TODO: get kicker settings
-        let beamon = 60;
-        let beamoff = 240;
-
         // get data from rpc call
         let durations = rpc.result.data[0];
         let enabled = rpc.result.data[1];
+
+        let beam = {};
+        for(let i=0; i<rpc.result.data[2].length; i++){
+            beam[rpc.result.data[2][i]] = rpc.result.data[3][i];
+        }
+
+        let beamon = parseFloat(beam["B1V:KSM:RDBEAMON.VAL1"]) * 0.000888111;
+        let beamoff = parseFloat(beam["B1V:KSM:RDBEAMOFF.VAL1"]) * 0.000888111;
 
         // derive NPERIODS from fetched length to avoid reading stale globals during a resize
         let nperiods = Math.floor(durations.length / NCYCLES);
