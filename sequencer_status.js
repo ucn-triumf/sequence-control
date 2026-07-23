@@ -1,7 +1,7 @@
 function update_seq_status(){
 
     // request info from ODB
-    let req = [mjsonrpc_make_request('cm_exist', {"name":"fe_ucnsequencer"}),
+    let req = [mjsonrpc_make_request('cm_exist', {"name":"fe_ucnsequencer26"}),
                mjsonrpc_make_request('db_get_values', {"paths":[`/Equipment/${NAME}/Settings`,
                                                                 `/Equipment/${NAME}/Variables`,
                                                                 '/Runinfo/State']}),

@@ -631,7 +631,7 @@ class SequencerFE(midas.frontend.FrontendBase):
     Sequencer frontend
     """
     def __init__(self):
-        midas.frontend.FrontendBase.__init__(self, "fe_ucnsequencer")
+        midas.frontend.FrontendBase.__init__(self, "fe_ucnsequencer26")
         self.add_equipment(UCNSequencer(self.client))
 
         # Set up the sequence settings so that the sequencer does BOR after the 
