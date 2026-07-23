@@ -1,0 +1,2 @@
+# Python dependencies for the UCN sequence-control MIDAS frontend.
+numpy==2.4.4
