@@ -136,6 +136,14 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         # disable enable - prevent ppg programming after crash
         self.set('Enabled', False)
 
+        # Pre-create the SEQC bank variable so the custom-page ODB link
+        # (Variables/SEQC[4]) and the status JS resolve before the first run
+        # writes a real bank. Length 7 = the fixed header words (0-6); word 4 is
+        # the cycle count shown on the page. Overwritten with real data by
+        # create_bank_SEQC() during the run.
+        self.client.odb_set(f'/Equipment/{self.NAME}/Variables/SEQC',
+                            np.zeros(7, dtype=np.uint32))
+
         # was in cycle - use for detecting cycle start
         self.was_incycle = False
 

@@ -557,10 +557,12 @@ function disable_and_highlight_cycle_in_progress(){
         let settings = rpc.result.data[0];
         let variables = rpc.result.data[1];
         let inrun = rpc.result.data[2] !== STATE_STOPPED;
-        let seqc = variables['seqc'].map(Number);
-        let cycle_start = seqc[0];
-        let incycle = seqc[2];
-        let current_cycle = seqc[3];
+        // SEQC bank only exists once a run has produced a cycle; treat its
+        // absence as "not in cycle" so the pre-run page doesn't throw.
+        let seqc = variables && variables['seqc'] ? variables['seqc'].map(Number) : null;
+        let cycle_start   = seqc ? seqc[0] : 0;
+        let incycle       = seqc ? seqc[2] : 0;
+        let current_cycle = seqc ? seqc[3] : 0;
         
         // highlight current cycle
         for(let cyclei=0; cyclei<NCYCLES; cyclei++){
