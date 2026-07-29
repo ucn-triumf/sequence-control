@@ -134,7 +134,7 @@ class UCNSequencer(midas.frontend.EquipmentBase):
         midas.frontend.EquipmentBase.__init__(self, client, self.NAME, default_common, self.DEFAULT_SETTINGS)
 
         # disable enable - prevent ppg programming after crash
-        self.set('Enable', False)
+        self.set('Enabled', False)
 
         # was in cycle - use for detecting cycle start
         self.was_incycle = False
@@ -593,7 +593,6 @@ class UCNSequencer(midas.frontend.EquipmentBase):
     def reset(self):
         """Reset in preparation for start of run"""
         self.set('CurrentCycle', self.get('StartAtCycleN')-1)
-        self.set('CurrentPeriod', 0)
         self.set('CurrentSupercycle', 0)
         self.set('StopAtCycleEnd', False)
         self.set('StopAtSupercycleEnd', False)

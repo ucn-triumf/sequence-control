@@ -16,10 +16,12 @@ function update_seq_status(){
         let variables = rpc[1].result.data[1];
         let run_state = rpc[1].result.data[2];
 
-        let seqc = variables['seqc'].map(Number);
-        let cycle_start = seqc[0];
-        let incycle = seqc[2];
-        let current_cycle = seqc[3];
+        // SEQC bank only exists once a run has produced a cycle; treat its
+        // absence as "not in cycle" so the pre-run page doesn't throw.
+        let seqc = variables['seqc'] ? variables['seqc'].map(Number) : null;
+        let cycle_start   = seqc ? seqc[0] : 0;
+        let incycle       = seqc ? seqc[2] : 0;
+        let current_cycle = seqc ? seqc[3] : 0;
 
         // Set status banner
         let cell = document.getElementById('seq_status');
