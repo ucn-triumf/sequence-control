@@ -471,9 +471,16 @@ function setTotalDuration(){
         let durations = rpc.result.data[0];
         let enabled = rpc.result.data[1];
 
+        // Beamline EPICS names/values don't exist until that equipment has
+        // run at least once; treat their absence as "no beam data" so the
+        // pre-run page doesn't throw.
+        let names = rpc.result.data[2];
+        let measured = rpc.result.data[3];
         let beam = {};
-        for(let i=0; i<rpc.result.data[2].length; i++){
-            beam[rpc.result.data[2][i]] = rpc.result.data[3][i];
+        if(names && measured){
+            for(let i=0; i<names.length; i++){
+                beam[names[i]] = measured[i];
+            }
         }
 
         let beamon = parseFloat(beam["B1V:KSM:RDBEAMON.VAL1"]) * 0.000888111;
