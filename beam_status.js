@@ -6,11 +6,17 @@ function update_beam_status(){
     mjsonrpc_db_get_values([`/Equipment/${BEAMLINE_EPICS}/Settings/Names`,
                             `/Equipment/${BEAMLINE_EPICS}/Variables/Measured`]).then(function(rpc) {
         
-        // get data, indexed by name
+        // get data, indexed by name. The beamline EPICS names/values don't
+        // exist until that equipment has run at least once; treat their
+        // absence as "no beam data" so the pre-run page doesn't throw.
         let data = rpc.result.data
+        let names = data[0];
+        let measured = data[1];
         let beam = {};
-        for(let i=0; i<data[0].length; i++){
-            beam[data[0][i]] = data[1][i];
+        if(names && measured){
+            for(let i=0; i<names.length; i++){
+                beam[names[i]] = measured[i];
+            }
         }
 
         // Set status banner

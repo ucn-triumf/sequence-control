@@ -2,15 +2,17 @@
 function populate_run_control(){       
     // get all elements from odb
     mjsonrpc_db_ls(["/Experiment/Edit on start"]).then(function(rpc){
-        
-        // check if odb path exists
-        if(!rpc.result.status){
-            table.innerText = "\"Edit on start\" not found in ODB";
-            return;
-        }
 
         // get table
         let table = document.getElementById("tbl_run_control");
+
+        // check if odb path exists. status is a per-path array, so index into
+        // it; also confirm data is present in case the path is missing on
+        // first startup.
+        if(!rpc.result.status[0] || !rpc.result.data[0]){
+            table.innerText = "\"Edit on start\" not found in ODB";
+            return;
+        }
 
         // get key names
         let values = rpc.result.data[0];

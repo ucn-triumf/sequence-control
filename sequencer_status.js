@@ -18,7 +18,7 @@ function update_seq_status(){
 
         // SEQC bank only exists once a run has produced a cycle; treat its
         // absence as "not in cycle" so the pre-run page doesn't throw.
-        let seqc = variables['seqc'] ? variables['seqc'].map(Number) : null;
+        let seqc = variables && variables['seqc'] ? variables['seqc'].map(Number) : null;
         let cycle_start   = seqc ? seqc[0] : 0;
         let incycle       = seqc ? seqc[2] : 0;
         let current_cycle = seqc ? seqc[3] : 0;
